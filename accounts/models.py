@@ -56,3 +56,18 @@ class User(AbstractUser):
 
     def __str__(self):
         return "{} {}".format(self.first_name, self.last_name)
+
+
+class State(models.Model):
+    name = models.CharField(max_length=32)
+
+    def __str__(self):
+        return self.name
+
+
+class District(models.Model):
+    name = models.CharField(max_length=32)
+    state = models.ForeignKey(to=State, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.name
