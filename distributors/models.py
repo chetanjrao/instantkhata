@@ -29,3 +29,25 @@ class Product(models.Model):
     mrp = models.FloatField()
     hsn = models.CharField(max_length=16)
     base_price = models.FloatField()
+
+
+class Package(models.Model):
+    name = models.CharField(max_length=64)
+    amount = models.FloatField()
+    duration = models.IntegerField(help_text="Total months this packages will work")
+
+    def __str__(self):
+        return self.name
+
+class Purchase(models.Model):
+    distributor = models.OneToOneField(to=Distributor, on_delete=models.CASCADE)
+    payment_date = models.DateField()
+
+class Subscription(models.Model):
+    distributor = models.OneToOneField(to=Distributor, on_delete=models.CASCADE)
+    package = models.ForeignKey(to=Package, on_delete=models.CASCADE)
+    payment_date = models.DateField()
+
+class Due(models.Model):
+    subscription = models.ForeignKey(to=Subscription, on_delete=models.CASCADE)
+    due_date = models.DateField()

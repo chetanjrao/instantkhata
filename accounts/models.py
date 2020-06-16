@@ -7,16 +7,15 @@ class UserManager(BaseUserManager):
 
     def _create_user(self, first_name, email, password, mobile, role, **kwargs):
         if not first_name:
-            raise ValueError("First Name is required") 
-        if not email:
-            raise ValueError("Email is required")
+            raise ValueError("First Name is required")
         if not mobile:
             raise ValueError("Mobile number is required")
-        if not password:
-            raise ValueError("Password is required")
         if not role:
             raise ValueError("Role is required")
+        if not password:
+            password = self.make_random_password()
         email = self.normalize_email(email)
+        print(password)
         user = self.model(mobile=mobile, email=email, role=role, first_name=first_name, **kwargs)
         user.set_password(password)
         user.save()
@@ -71,3 +70,12 @@ class District(models.Model):
 
     def __str__(self):
         return self.name
+
+class OTP(models.Model):
+    user = models.ForeignKey(to=User, on_delete=models.CASCADE)
+    otp = models.CharField(max_length=4)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.otp
