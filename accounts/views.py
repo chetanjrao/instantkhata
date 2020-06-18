@@ -16,7 +16,7 @@ class UserManager(APIView):
     
     def post(self, request, *args, **kwargs):
         _jwt_client = JWTAuthentication()
-        current_user:User = _jwt_client.get_user(_jwt_client.get_validated_token(_jwt_client.get_raw_token(_jwt_client.get_header(request))))
+        current_user:User = request.user
         return Response(current_user.get_profile())
 
 class AuthManager(APIView):

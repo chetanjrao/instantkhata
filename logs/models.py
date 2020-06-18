@@ -5,8 +5,9 @@ from distributors.models import Product
 # Create your models here.
 class Quantity(models.Model):
     LOG_TYPES = (
-        ('C', 'CREDIT'),
-        ('D', 'DEBIT')
+        ('A', 'ADDITION'),
+        ('D', 'DELETION'),
+        ('T', 'TRANSFER')
     )
     product = models.ForeignKey(to=Product, on_delete=models.CASCADE)
     type = models.CharField(max_length=1, choices=LOG_TYPES)

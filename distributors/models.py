@@ -15,8 +15,12 @@ class Distributor(models.Model):
     user = models.OneToOneField(to=User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return self.name
+
 class Type(models.Model):
     name = models.CharField(max_length=32)
+    distributor = models.ForeignKey(to=Distributor, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -26,11 +30,12 @@ class Product(models.Model):
     image = models.ImageField(upload_to='uploads/products/', null=True, blank=True)
     type = models.ForeignKey(to=Type, on_delete=models.CASCADE)
     distributor = models.ForeignKey(to=Distributor, on_delete=models.CASCADE)
-    description = models.TextField()
     mrp = models.FloatField()
     hsn = models.CharField(max_length=16)
     base_price = models.FloatField()
-
+    
+    def __str__(self):
+        return '{} - {}'.format(self.name, self.distributor.name)
 
 class Package(models.Model):
     name = models.CharField(max_length=64)
@@ -64,3 +69,10 @@ class Due(models.Model):
     subscription = models.ForeignKey(to=Subscription, on_delete=models.CASCADE)
     due_date = models.DateField()
     created_at = models.DateTimeField(auto_now=True)
+
+class Quantity(models.Model):
+    product = models.OneToOneField(to=Product, on_delete=models.CASCADE, related_name='quantity_of_product')
+    quantity = models.IntegerField()
+
+    def __str__(self):
+        return "{} - {} units".format(self.product, self.quantity)
