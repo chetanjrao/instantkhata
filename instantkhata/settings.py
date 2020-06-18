@@ -39,7 +39,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'accounts.apps.AccountsConfig'
+    'accounts.apps.AccountsConfig',
+    'distributors.apps.DistributorsConfig',
+    'ledger.apps.LedgerConfig',
+    'logs.apps.LogsConfig',
+    'retailers.apps.RetailersConfig',
+    'salesman.apps.SalesmanConfig'
 ]
 
 AUTH_USER_MODEL = 'accounts.User'

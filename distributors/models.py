@@ -4,7 +4,7 @@ from accounts.models import User, District, State
 # Create your models here.
 class Distributor(models.Model):
     name = models.CharField(max_length=256)
-    logo = models.ImageField(upload_to='uploads/images/', null=True)
+    logo = models.ImageField(upload_to='uploads/images/', null=True, blank=True)
     gst_number = models.CharField(max_length=32)
     district = models.ForeignKey(to=District, on_delete=models.CASCADE)
     address = models.TextField()
@@ -13,6 +13,7 @@ class Distributor(models.Model):
     drug_license = models.CharField(max_length=16, null=True, blank=True)
     food_license = models.CharField(max_length=32, null=True, blank=True)
     user = models.OneToOneField(to=User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now=True)
 
 class Type(models.Model):
     name = models.CharField(max_length=32)
@@ -41,13 +42,25 @@ class Package(models.Model):
 
 class Purchase(models.Model):
     distributor = models.OneToOneField(to=Distributor, on_delete=models.CASCADE)
+    transaction_id = models.CharField(max_length=256)
+    order_id = models.CharField(max_length=256)
+    payment_signature = models.CharField(max_length=512)
+    amount_paid = models.FloatField()
     payment_date = models.DateField()
+    created_at = models.DateTimeField(auto_now=True)
 
 class Subscription(models.Model):
     distributor = models.OneToOneField(to=Distributor, on_delete=models.CASCADE)
     package = models.ForeignKey(to=Package, on_delete=models.CASCADE)
+    amount_paid = models.FloatField()
+    transaction_id = models.CharField(max_length=256)
+    order_id = models.CharField(max_length=256)
+    payment_signature = models.CharField(max_length=512)
     payment_date = models.DateField()
+    created_at = models.DateTimeField(auto_now=True)
 
 class Due(models.Model):
+    distributor = models.OneToOneField(to=Distributor, on_delete=models.CASCADE)
     subscription = models.ForeignKey(to=Subscription, on_delete=models.CASCADE)
     due_date = models.DateField()
+    created_at = models.DateTimeField(auto_now=True)
