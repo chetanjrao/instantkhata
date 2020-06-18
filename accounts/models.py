@@ -56,6 +56,15 @@ class User(AbstractUser):
     def __str__(self):
         return "{} {}".format(self.first_name, self.last_name)
 
+    def get_profile(self):
+        return {
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "email": self.email,
+            "mobile": self.mobile,
+            "last_login": self.last_login
+        }
+
 
 class State(models.Model):
     name = models.CharField(max_length=32)
@@ -74,6 +83,7 @@ class District(models.Model):
 class OTP(models.Model):
     user = models.ForeignKey(to=User, on_delete=models.CASCADE)
     otp = models.CharField(max_length=4)
+    created_at = models.DateTimeField(auto_now=True, null=True)
     expires_at = models.DateTimeField()
     is_used = models.BooleanField(default=False)
 

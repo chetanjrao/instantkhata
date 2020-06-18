@@ -1,19 +1,23 @@
-from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.views import APIView
-from rest_framework import permissions
+from rest_framework import permissions, status
 from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from django.http import JsonResponse
-from .models import User
-from .serializers import UserSerializer, OTPSerializer
+from .models import User, OTP
+from .serializers import UserSerializer, OTPSerializer, OTPValidator
 
 # Create your views here.
-@csrf_exempt
 class UserManager(APIView):
+
+    permission_classes = [permissions.IsAuthenticated]
     
-    def post(self, *args, **kwargs):
-        pass
+    def post(self, request, *args, **kwargs):
+        _jwt_client = JWTAuthentication()
+        current_user:User = _jwt_client.get_user(_jwt_client.get_validated_token(_jwt_client.get_raw_token(_jwt_client.get_header(request))))
+        return Response(current_user.get_profile())
 
 class AuthManager(APIView):
 
@@ -23,5 +27,32 @@ class AuthManager(APIView):
         serializer = OTPSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+            return Response(data={
+                "message": "OTP sent successfully",
+                "status": 200
+            }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors)
+
+class OTPManager(APIView):
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        validator = OTPValidator(data=request.data)
+        if validator.is_valid():
+            user = User.objects.get(mobile=validator.data["user"])
+            otp = OTP.objects.filter(user=user, otp=validator.data["otp"]).order_by('-created_at')[0]
+            validator.update(otp)
+            try:
+                refresh_token = RefreshToken.for_user(user)
+                return Response({
+                    "access_token": str(refresh_token.access_token),
+                    "refresh_token": str(refresh_token)
+                })
+            except TokenError:
+                return Response(data={
+                    "message": "Error procrocessing your request",
+                    "status": 500
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(validator.data)
+        return Response(validator.errors)

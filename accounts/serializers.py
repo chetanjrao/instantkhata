@@ -35,10 +35,11 @@ class OTPSerializer(serializers.Serializer):
         expiry = timezone.now() + datetime.timedelta(minutes=10)
         otp_document = OTP.objects.create(user=validated_data["user"], otp=otp, expires_at=expiry)
         otp_document.save()
+        print(otp)
         return otp_document
 
 
-    def update(self, validated_data):
+    def update(self, instance, validated_data):
         pass
         
 class OTPValidator(serializers.Serializer):
@@ -47,17 +48,22 @@ class OTPValidator(serializers.Serializer):
 
     def validate_user(self, user):
         try:
-            user = User.objects.get(mobile=user)
+            self._user = User.objects.get(mobile=user)
         except User.DoesNotExist:
             raise ValidationError("Requested mobile is not associated with any user")
         return user
     
-    def validate_otp(self, user, otp):
+    def validate_otp(self, otp):
         try:
-            otp_check = OTP.objects.get(user=user, otp=otp)
-            if otp_check.is_used or timezone.now() < otp_check.expires_at:
+            otp_check = OTP.objects.filter(user=self._user, otp=otp).order_by('-created_at')[0]
+            if otp_check.is_used or timezone.now() > otp_check.expires_at:
                 raise ValidationError("OTP has been expired")
             else:
                 return otp_check
         except:
             raise ValidationError("Invalid OTP")
+
+    def update(self, instance):
+        instance.is_used = True
+        instance.save()
+        return instance

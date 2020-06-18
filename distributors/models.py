@@ -4,7 +4,7 @@ from accounts.models import User, District, State
 # Create your models here.
 class Distributor(models.Model):
     name = models.CharField(max_length=256)
-    logo = models.ImageField(upload_to='uploads/images/')
+    logo = models.ImageField(upload_to='uploads/images/', null=True)
     gst_number = models.CharField(max_length=32)
     district = models.ForeignKey(to=District, on_delete=models.CASCADE)
     address = models.TextField()
