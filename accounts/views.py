@@ -55,4 +55,4 @@ class OTPManager(APIView):
                     "status": 500
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             return Response(validator.data)
-        return Response(validator.errors)
+        return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)

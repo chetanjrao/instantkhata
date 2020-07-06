@@ -13,7 +13,7 @@ class Sale(models.Model):
 
 
 class Invoice(models.Model):
-    sales = models.ForeignKey(to=Sale, on_delete=models.CASCADE)
+    sales = models.ManyToManyField(to=Sale)
     retailer = models.ForeignKey(to=Retailer, on_delete=models.CASCADE)
     total_amount = models.FloatField()
     amount_paid = models.FloatField()

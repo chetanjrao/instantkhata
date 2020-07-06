@@ -1,6 +1,6 @@
 from django.db import models
 from accounts.models import User, District, State
-from distributors.models import Distributor
+from distributors.models import Distributor, Product
 
 # Create your models here.
 class Retailer(models.Model):
@@ -17,3 +17,16 @@ class Retailer(models.Model):
     longitude = models.FloatField()
     user = models.OneToOneField(to=User, on_delete=models.CASCADE)
     distributors = models.ManyToManyField(to=Distributor)
+
+class Request(models.Model):
+    CHOICES = (
+        (0, 'Pending'),
+        (1, 'Approved'),
+        (2, 'Cancelled'),
+    )
+    product = models.ForeignKey(to=Product, on_delete=models.CASCADE)
+    retailer = models.ForeignKey(to=Retailer, on_delete=models.CASCADE)
+    distributor = models.ForeignKey(to=Distributor, on_delete=models.CASCADE)
+    quantity = models.IntegerField(choices=CHOICES, default=0)
+    status = models.IntegerField()
+    updated_at = models.DateTimeField(auto_now=True, null=True)

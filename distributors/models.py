@@ -21,6 +21,7 @@ class Distributor(models.Model):
 class Type(models.Model):
     name = models.CharField(max_length=32)
     distributor = models.ForeignKey(to=Distributor, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now=True, null=True)
 
     def __str__(self):
         return self.name
@@ -33,6 +34,7 @@ class Product(models.Model):
     mrp = models.FloatField()
     hsn = models.CharField(max_length=16)
     base_price = models.FloatField()
+    created_at = models.DateTimeField(auto_now=True, null=True)
     
     def __str__(self):
         return '{} - {}'.format(self.name, self.distributor.name)
@@ -41,6 +43,7 @@ class Package(models.Model):
     name = models.CharField(max_length=64)
     amount = models.FloatField()
     duration = models.IntegerField(help_text="Total months this packages will work")
+    created_at = models.DateTimeField(auto_now=True, null=True)
 
     def __str__(self):
         return self.name
@@ -73,6 +76,7 @@ class Due(models.Model):
 class Quantity(models.Model):
     product = models.OneToOneField(to=Product, on_delete=models.CASCADE, related_name='quantity_of_product')
     quantity = models.IntegerField()
+    created_at = models.DateTimeField(auto_now=True, null=True)
 
     def __str__(self):
         return "{} - {} units".format(self.product, self.quantity)
