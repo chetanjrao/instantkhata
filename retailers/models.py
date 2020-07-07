@@ -18,6 +18,9 @@ class Retailer(models.Model):
     user = models.OneToOneField(to=User, on_delete=models.CASCADE)
     distributors = models.ManyToManyField(to=Distributor)
 
+    def __str__(self):
+        return self.name
+
 class Request(models.Model):
     CHOICES = (
         (0, 'Pending'),
