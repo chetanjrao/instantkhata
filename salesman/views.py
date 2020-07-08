@@ -1,10 +1,11 @@
-from django.shortcuts import render
+from django.shortcuts import render, HttpResponse
 from .serializers import SalesSerializer, InvoiceSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from ledger.models import Sale
+from ledger.models import Sale, Invoice, BalanceSheet
 from distributors.views import createMessage
+
 # Create your views here.
 
 
@@ -35,3 +36,11 @@ class InvoiceCreationView(APIView):
 
     def get_queryset(self):
         return Sale.objects.all()
+
+def invoice_view(request, invoice):
+    try:
+        invoice = Invoice.objects.get(uid=invoice)
+        balance_sheet = BalanceSheet.objects.get(invoice=invoice)
+        return render(request, "invoice.html", { "invoice": invoice, "balance_sheet": balance_sheet })
+    except Invoice.DoesNotExist:
+        return HttpResponse("Requested entity does not exist")

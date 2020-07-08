@@ -7,6 +7,7 @@ from instantkhata import permissions as local_permissions
 from django.utils.timezone import now
 from salesman.models import Inventory
 from uuid import uuid4
+from logs.models import Quantity as logQty
 
 class SalemanCreationSerializer(serializers.ModelSerializer):
 
@@ -35,16 +36,17 @@ class SalesSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Sale
-        fields = ['quantity', 'product']
+        fields = ['quantity', 'product', 'discount', 'tax']
 
     def validate(self, data):
         try:
-            print(data["product"])
+            data["tax"] = data.get("tax", 18)
             quantity_obj = Inventory.objects.get(product=data["product"], salesman__user=self.context["user"])
             if quantity_obj.quantity < data["quantity"]:
                 raise serializers.ValidationError("Quantity limit exceeded")
             else:
-                data["amount"] = data["product"].base_price * data["quantity"]
+                data["taxable_value"] = data["product"].base_price * data["quantity"]
+                data["amount"] = data["taxable_value"] + (data["tax"] * data["taxable_value"] / 100) - (data["discount"] * data["taxable_value"] / 100)
                 return data
         except Inventory.DoesNotExist:
             raise serializers.ValidationError("Product does not exist")

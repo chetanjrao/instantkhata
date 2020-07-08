@@ -8,6 +8,11 @@ import uuid
 class Sale(models.Model):
     product = models.ForeignKey(to=Product, on_delete=models.CASCADE)
     quantity = models.IntegerField()
+    sch = models.FloatField(default=0)
+    discount = models.FloatField(default=0)
+    tax = models.FloatField(default=18)
+    box = models.FloatField(default=0)
+    taxable_value = models.FloatField()
     created_at = models.DateTimeField(auto_now=True, null=True)
     amount = models.FloatField()
 
@@ -24,6 +29,7 @@ class Invoice(models.Model):
     uid = models.CharField(max_length=32, unique=True, default=uuid.uuid4().hex)
     deadline = models.DateField()
     last_updated_at = models.DateTimeField(auto_now=True, null=True)
+    created_at = models.DateTimeField(auto_now=True, null=True)
 
 
 class BalanceSheet(models.Model):
