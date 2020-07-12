@@ -52,6 +52,7 @@
                     <th>Quantity</th>
                     <th>Box</th>
                     <th>Base Price</th>
+                    <th>MRP</th>
                     <th>Taxable Value</th>
                     <th>Tax</th>
                     <th>Total</th>
@@ -65,6 +66,7 @@
                         <td>{{ sale.quantity }}</td>
                         <td>{{ sale.box|floatformat:"0" }}</td>
                         <td>&#x20b9;{{ sale.product.base_price }}</td>
+                        <td>&#x20b9;{{ sale.product.mrp }}</td>
                         <td>&#x20b9;{{ sale.taxable_value|floatformat:-2 }}</td>
                         <td>{{ sale.tax }}%</td>
                         <td>&#x20b9;{{ sale.amount|floatformat:-2 }}</td>
@@ -79,6 +81,7 @@
                 <table>
                     <thead>
                         <th>Opening Balance</th>
+                        <th>Amount</th>
                         <th>Tax</th>
                         <th>Net Total</th>
                         <th>Amount Paid</th>
@@ -87,7 +90,8 @@
                     <tbody>
                         <tr>
                             <td>&#x20b9; {{ balance_sheet.opening_balance|floatformat:-2 }}</td>
-                            <td>&#x20b9; {{ 18 }}%</td>
+                            <td>&#x20b9; {{ amount|floatformat:-2 }} </td>
+                            <td>{{ 18 }}%</td>
                             <td>&#x20b9; {{ invoice.total_amount|floatformat:-2 }}</td>
                             <td>&#x20b9; {{ invoice.amount_paid|floatformat:-2 }}</td>
                             <td>&#x20b9; {{ balance_sheet.closing_balance|floatformat:-2 }}</td>

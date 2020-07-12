@@ -40,7 +40,10 @@ class InvoiceCreationView(APIView):
 def invoice_view(request, invoice):
     try:
         invoice = Invoice.objects.get(uid=invoice)
+        amount = 0
+        for sale in invoice.sales.all():
+            amount += sale.taxable_value
         balance_sheet = BalanceSheet.objects.get(invoice=invoice)
-        return render(request, "invoice.html", { "invoice": invoice, "balance_sheet": balance_sheet })
+        return render(request, "invoice.html", { "invoice": invoice, "balance_sheet": balance_sheet, "amount": amount })
     except Invoice.DoesNotExist:
         return HttpResponse("Requested entity does not exist")
