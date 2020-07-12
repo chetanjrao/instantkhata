@@ -83,11 +83,45 @@ class InvoiceSerializer(serializers.ModelSerializer):
         new_invoice.balance = final_amount - validated_data["amount_paid"]
         new_invoice.save()
         current_balance = Balance.objects.get(retailer=validated_data["retailer"], distributor=validated_data["distributor"])
+        new_balance_sheet = BalanceSheet(invoice=new_invoice, opening_balance=current_balance.closing_balance, closing_balance=current_balance.closing_balance+final_amount-validated_data["amount_paid"], payment_mode=validated_data["payment_mode"], created_by=validated_data["salesman"], retailer=validated_data["retailer"], distributor=validated_data["distributor"], amount=validated_data["amount_paid"], remaining_balance=final_amount - validated_data["amount_paid"])
         current_balance.opening_balance = current_balance.closing_balance
         current_balance.closing_balance = current_balance.closing_balance + final_amount - validated_data["amount_paid"]
         current_balance.last_updated_by = now()
         current_balance.save()
-        new_balance_sheet = BalanceSheet(invoice=new_invoice, opening_balance=current_balance.closing_balance, closing_balance=current_balance.closing_balance+final_amount-validated_data["amount_paid"], payment_mode=validated_data["payment_mode"], created_by=validated_data["salesman"], retailer=validated_data["retailer"], distributor=validated_data["distributor"], amount=final_amount - validated_data["amount_paid"])
         new_balance_sheet.save()
         return new_invoice
     
+
+class InvoiceUpdateSerializer(serializers.Serializer):
+    invoice = serializers.CharField(max_length=100)
+    amount = serializers.FloatField()
+    payment_mode = serializers.CharField()
+    deadline = serializers.DateField()
+
+    permission_classes = [permissions.IsAuthenticated, local_permissions.DistributorPermission, local_permissions.SalesmanPermission]
+
+    def create(self, validated_data):
+        invoice = Invoice.objects.get(uid=validated_data["invoice"])
+        current_balance = Balance.objects.get(retailer=invoice.retailer, distributor=invoice.distributor)
+        new_balance_sheet = BalanceSheet(
+            invoice = invoice,
+            opening_balance = current_balance.closing_balance,
+            closing_balance = current_balance.closing_balance - validated_data["amount"],
+            amount = validated_data["amount"],
+            is_credit=False,
+            remaining_balance=invoice.balance - validated_data["amount"],
+            payment_mode=validated_data["payment_mode"],
+            created_by = Salesman.objects.get(user=self.context["user"]),
+            retailer=invoice.retailer,
+            distributor=invoice.distributor
+        )
+        invoice.balance = invoice.balance - validated_data["amount"]
+        invoice.deadline = validated_data["deadline"]
+        invoice.last_updated_at = now()
+        invoice.save()
+        current_balance.opening_balance = current_balance.closing_balance
+        current_balance.closing_balance = current_balance.closing_balance - validated_data["amount"]
+        current_balance.last_updated_by = now()
+        current_balance.save()
+        new_balance_sheet.save()
+        return invoice

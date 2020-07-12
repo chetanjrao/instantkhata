@@ -32,10 +32,11 @@ class Invoice(models.Model):
     created_at = models.DateTimeField(auto_now=True, null=True)
 
 
-class BalanceSheet(models.Model):
+class BalanceSheet(models.Model): # Balance records
     invoice = models.ForeignKey(to=Invoice, on_delete=models.CASCADE)
     opening_balance = models.FloatField()
     amount = models.FloatField()
+    remaining_balance = models.FloatField()
     closing_balance = models.FloatField()
     is_credit = models.BooleanField(default=True)
     payment_mode = models.CharField(max_length=16)
