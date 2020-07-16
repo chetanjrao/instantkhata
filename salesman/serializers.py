@@ -125,3 +125,13 @@ class InvoiceUpdateSerializer(serializers.Serializer):
         current_balance.save()
         new_balance_sheet.save()
         return invoice
+
+
+class BalanceSheetListSerializer(serializers.ModelSerializer):
+
+    permission_classes = [permissions.IsAuthenticated, local_permissions.DistributorPermission, local_permissions.SalesmanPermission]
+
+    class Meta:
+        model = BalanceSheet
+        fields = ('amount', 'is_credit', 'created_at', )
+

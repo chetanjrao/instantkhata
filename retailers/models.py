@@ -5,7 +5,7 @@ from distributors.models import Distributor, Product
 # Create your models here.
 class Retailer(models.Model):
     name = models.CharField(max_length=256)
-    logo = models.ImageField(upload_to='uploads/images/')
+    logo = models.ImageField(upload_to='uploads/images/', null=True, blank=True)
     gst_number = models.CharField(max_length=32)
     district = models.ForeignKey(to=District, on_delete=models.CASCADE)
     address = models.TextField()

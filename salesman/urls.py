@@ -1,9 +1,13 @@
-from django.urls import path
+from django.urls import path, re_path
 from django.views.decorators.csrf import csrf_exempt
-from .views import SalesCreationView, InvoiceCreationView, invoice_view, InvoiceEditView
+from .views import SalesCreationView, InvoiceCreationView, invoice_view, InvoiceEditView, SalesmanAnalyticsView, TransactionList, RetailersListView, InventoryListView
 
 urlpatterns = [
     path('sales/create/', InvoiceCreationView.as_view(), name="sales_creation"),
     path('sales/invoice/edit/', InvoiceEditView.as_view(), name="update_invoice"),
-    path('sales/invoice/<str:invoice>/', invoice_view, name="invoice")
+    path('sales/invoice/<str:invoice>/', invoice_view, name="sales_invoice"),
+    path('analytics/', SalesmanAnalyticsView.as_view(), name="sales_analytics"),
+    path('transactions/', TransactionList.as_view(), name="sales_transactions"),
+    re_path(r'^retailers/$', RetailersListView.as_view(), name="sales_reatilers"),
+    path('inventory/', InventoryListView.as_view(), name="sales_inventory")
 ]

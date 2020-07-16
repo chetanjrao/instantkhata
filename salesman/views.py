@@ -1,11 +1,15 @@
 from django.shortcuts import render, HttpResponse
-from .serializers import SalesSerializer, InvoiceSerializer, InvoiceUpdateSerializer
+from .serializers import SalesSerializer, InvoiceSerializer, InvoiceUpdateSerializer, BalanceSheetListSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from ledger.models import Sale, Invoice, BalanceSheet
 from distributors.views import createMessage
-
+from django.utils.timezone import now, timedelta, datetime, localtime
+from django.db.models import Sum
+from .models import Salesman, Inventory
+from instantkhata import permissions
+from retailers.models import Retailer
 # Create your views here.
 
 
@@ -51,6 +55,63 @@ class InvoiceEditView(APIView):
 
     def get_queryset(self):
         return Invoice.objects.all()
+
+class SalesmanAnalyticsView(APIView):
+
+    def get(self, request, *args, **kwargs):
+        today = localtime()
+        month_start = today.replace(day=1, second=0, minute=0, hour=0, microsecond=0)
+        prev_month_end = (today.replace(day=1, second=59, minute=59, hour=23) - timedelta(days=1))
+        prev_month_start = prev_month_end.replace(day=1, second=0, minute=0, hour=0)
+        current_sales = Invoice.objects.filter(salesman=Salesman.objects.get(user=request.user), created_at__gte=month_start, created_at__lte=today).aggregate(sales=Sum('total_amount'))
+        previous_sales = Invoice.objects.filter(salesman=Salesman.objects.get(user=request.user), created_at__gte=prev_month_start, created_at__lte=prev_month_end).aggregate(sales=Sum('total_amount'))
+        if previous_sales["sales"] is None:
+            previous_sales["sales"] = 0
+        return Response({
+            "status": (current_sales["sales"] - previous_sales["sales"]) * 100 / previous_sales["sales"] if previous_sales["sales"] else current_sales["sales"],
+            "total": current_sales["sales"]
+        })
+        #current_analytics = Invoice.objects.filter(created_at__lte=now,)
+
+    def get_queryset(self):
+        return Invoice.objects.all()
+
+
+class TransactionList(APIView):
+
+    def get(self, request, *args, **kwargs):
+        today = localtime()
+        month_start = today.replace(day=1, second=0, minute=0, hour=0, microsecond=0)
+        transactions = BalanceSheet.objects.filter(created_by=Salesman.objects.get(user=request.user), created_at__gte=month_start, created_at__lte=today)
+        serializer = BalanceSheetListSerializer(transactions, many=True)
+        return Response(serializer.data)
+
+    def get_queryset(self):
+        return BalanceSheet.objects.all()
+
+
+class RetailersListView(APIView):
+
+    def get(self, request, *args, **kwargs):
+        try:
+            retailers = Retailer.objects.filter(distributors__pk=request.GET["distributor"]).values('id', 'name', 'latitude', 'longitude', 'user__mobile')
+            return Response(retailers)
+        except (KeyError, Retailer.DoesNotExist):
+            return Response(createMessage("Bad Request", 400), status=status.HTTP_400_BAD_REQUEST)
+
+    def get_queryset(self):
+        return Retailer.objects.all()
+
+
+class InventoryListView(APIView):
+
+    def post(self, request, *args, **kwargs):
+        inventory = Inventory.objects.filter(salesman__user=request.user, product__distributor=request.data["distributor"]).values('product_id', 'product__name', 'product__mrp', 'quantity')
+        return Response(inventory)
+
+
+    def get_queryset(self):
+        return Inventory.objects.all()
 
 
 def invoice_view(request, invoice):
