@@ -46,6 +46,7 @@ class User(AbstractUser):
     )
     mobile = models.CharField(max_length=10, unique=True)
     role = models.IntegerField(default=1, choices=ROLES)
+    image = models.ImageField(upload_to="uploads/profile/", null=True, blank=True)
 
     USERNAME_FIELD = 'mobile'
 
@@ -56,13 +57,21 @@ class User(AbstractUser):
     def __str__(self):
         return "{} {}".format(self.first_name, self.last_name)
 
+    @property
+    def image_url(self):
+        if self.image and hasattr(self.image, 'url'):
+            return self.image.url
+        else:
+            return "uploads/profile/blank.jpg"
+
     def get_profile(self):
         return {
             "first_name": self.first_name,
             "last_name": self.last_name,
             "email": self.email,
             "mobile": self.mobile,
-            "last_login": self.last_login
+            "last_login": self.last_login,
+            "image": self.image_url
         }
 
 

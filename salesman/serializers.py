@@ -1,7 +1,7 @@
 from .models import Salesman, Inventory
 from rest_framework import serializers, permissions
 from retailers.models import Retailer
-from distributors.models import Product, Quantity
+from distributors.models import Distributor, Product, Quantity
 from ledger.models import Invoice, Sale, BalanceSheet, Balance
 from instantkhata import permissions as local_permissions
 from django.utils.timezone import now
@@ -63,6 +63,14 @@ class InvoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invoice
         fields = ('sales', 'retailer', 'distributor', 'total_amount', 'amount_paid', 'payment_mode', 'deadline', 'last_updated_at')
+
+    def validate_distributor(self, distributor):
+        check_distributor = Salesman.objects.get(user=self.context["user"])
+        current_distributor = Distributor.objects.get(pk=distributor.pk)
+        if current_distributor in check_distributor.distributor.all():
+            return current_distributor
+        else:
+            raise serializers.ValidationError("Distributor not associated")
 
     def create(self, validated_data):
         validated_data["salesman"] = Salesman.objects.get(user=self.context["user"])
@@ -133,5 +141,13 @@ class BalanceSheetListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BalanceSheet
-        fields = ('amount', 'is_credit', 'created_at', )
+        fields = ('id', 'amount', 'is_credit', 'created_at', )
 
+
+class InvoiceListSerializer(serializers.ModelSerializer):
+
+    permission_classes = [permissions.IsAuthenticated, local_permissions.DistributorPermission, local_permissions.SalesmanPermission]
+
+    class Meta:
+        model = Invoice
+        fields = ('total_amount', 'uid', 'created_at', 'retailer')

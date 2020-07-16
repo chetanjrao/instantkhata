@@ -114,6 +114,40 @@ class InventoryListView(APIView):
         return Inventory.objects.all()
 
 
+class InvoiceListView(APIView):
+
+    def post(self, request):
+        invoices = Invoice.objects.filter(distributor__pk=request.data["distributor"], salesman__user=request.user).values('total_amount', 'uid', 'retailer__name', 'created_at')
+        return Response(invoices)
+
+    def get_queryset(self):
+        return Invoice.objects.all()
+
+
+class TransactionView(APIView):
+
+    def post(self, request, t_id):
+        transactions = BalanceSheet.objects.filter(distributor__pk=request.data["distributor"], created_by__user=request.user).values('retailer__name', 'amount', 'payment_mode', 'is_credit', 'created_at', 'invoice__uid')
+        return Response(transactions)
+
+    def get_queryset(self):
+        return Invoice.objects.all()
+
+class Distributors(APIView):
+   
+
+    def get(self, request):
+        try:
+            distributors = Salesman.objects.get(user=request.user).distributor.all().values('id', 'name', 'address')
+            return Response(distributors)
+        except Salesman.DoesNotExist:
+            return Response(createMessage("Invalid Request", 400), status=status.HTTP_400_BAD_REQUEST)
+
+    
+    def get_queryset(self):
+        return Salesman.objects.all()
+
+
 def invoice_view(request, invoice):
     try:
         invoice = Invoice.objects.get(uid=invoice)

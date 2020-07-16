@@ -56,3 +56,19 @@ class OTPManager(APIView):
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             return Response(validator.data)
         return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class EditProfileView(APIView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = UserSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.update(request.user, serializer.validated_data)
+            return Response({
+                "message": "Profile saved successfully",
+                "status": 200
+            })
+        else:
+            return Response(serializer.errors)
