@@ -5,14 +5,15 @@ from rest_framework.generics import RetrieveAPIView
 from .serializers import DistributorSerializer, InventorySerializer, BaseInventorySerializer, TypeCreationSerializer, SalesmanSerializer, SalesmanTransferSerializer, SalesmanAddSerializer, SalesmanDeleteSerializer, RetailerAddSerializer, RetailerDeleteSerializer
 from rest_framework.response import Response
 from instantkhata import permissions as local_permissions
-from instantkhata.utils import createMessage
+from instantkhata.utils import createMessage, send_message
 from rest_framework import status
 from .models import Product, Type, Distributor
 from salesman.models import Salesman, Inventory
 from ledger.models import Invoice, BalanceSheet, Balance
-from django.utils.timezone import localtime, datetime, timedelta
+from django.utils.timezone import localtime, datetime, timedelta, now
 from django.db.models import Sum, F
 from retailers.models import Retailer, Request
+from logs.models import Notifications
 
 # Create your views here.
 class DistributorRegistration(APIView):
@@ -327,3 +328,53 @@ class RetailerView(APIView):
     def get_queryset(self):
         return super().get_queryset()
     
+
+class NotifyInvoice(APIView):
+
+    permission_classes = [permissions.IsAuthenticated, local_permissions.DistributorPermission]
+
+    def post(self, request, **args):
+        current_time = now()
+        today_date = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        notification = Notifications.objects.filter(created_at__gte=today_date, type='I', retailer__pk=request.data["retailer"], distributor__user=request.user)
+        if len(notification) == 0:
+            try:
+                curr_distributor = Distributor.objects.get(user=request.user)
+                retailer = Retailer.objects.get(pk=request.data["retailer"])
+                curr_invoice = Invoice.objects.get(uid=request.data["invoice"])
+                message = 'Hi, {}. \nYou have a pending payment of Rs {:.2f}/- on Invoice No. {} created at {}. Last date to pay is {}.\nRegards,\n{}'.format(retailer.name, curr_invoice.balance, curr_invoice.pk, curr_invoice.created_at.strftime('%d %B %Y') ,curr_invoice.deadline.strftime('%d %B %Y'), curr_distributor.name)
+                new_notification = Notifications(retailer=retailer, entity=curr_invoice.pk, distributor=curr_distributor, message=message, type='I')
+                send_message(message, retailer.user.mobile)
+                new_notification.save()
+                return Response(createMessage("Message has been sent", 200), status=200)
+            except (Retailer.DoesNotExist, Invoice.DoesNotExist):
+                return Response(createMessage("Bad request", 400), status=400)
+        else:
+            return Response(createMessage("Message has already been sent", 200), status=200)
+
+    def get_queryset(self):
+        return super().get_queryset()
+
+
+# class NotifyRetailer(APIView):
+
+#     permission_classes = [permissions.IsAuthenticated, local_permissions.DistributorPermission]
+    
+#     def post(self, request, **args):
+#         notification = Notifications.objects.filter(created_at=localtime().date(), type='B', retailer__pk=request.data["retailer"], distributor__user=request.user)
+#         if len(notification) == 0:
+#             try:
+#                 retailer = Retailer.objects.get(pk=request.data["retailer"])
+#                 curr_invoice = Invoice.objects.get(pk=request.data["invoice"])
+#                 message = 'Hi, {}. \nYou have a pending payment of Rs.{}/- on invoice #{}.\Last date to pay is {}\n\n.Regards,\n{}'.format(retailer.name, curr_invoice.balance, curr_invoice.pk, curr_invoice.deadline, request.user.first_name)
+#                 new_notification = Notifications(retailer=retailer, entity=invoice, distributor=Distributor.objects.get(user=request.user), message=message, type='I')
+#                 new_notification.save()
+#                 send_message(message, retailer.user.mobile)
+#                 return Response(createMessage("Message has been sent", 200), status=200)
+#             except (Retailer.DoesNotExist, Invoice.DoesNotExist):
+#                 return Response(createMessage("Bad request", 400), status=400)
+#         else:
+#             return Response(createMessage("Message has already been sent", 200), status=200)
+
+#     def get_queryset(self):
+#         return super().get_queryset()

@@ -6,7 +6,8 @@ InventoryTransferView, SalesmanAddView,
 SalesmanRemoveView, GetInvoicesView, 
 InvoiceInfoView, AnalyticsView, SalesmanListView,
 RetailersListView, RetailerAddView, RetailerDeleteView,
-TransactionsView, SingleTransactionView, RetailerView
+TransactionsView, SingleTransactionView, RetailerView,
+NotifyInvoice
 )
 
 urlpatterns = [
@@ -21,6 +22,7 @@ urlpatterns = [
     path('salesman/add/', SalesmanAddView.as_view(), name="add_salesman"),
     path('salesman/remove/', SalesmanRemoveView.as_view(), name="remove_salesman"),
     path('invoices/', GetInvoicesView.as_view(), name='distributors_invoices'),
+    path('invoices/notify/', NotifyInvoice.as_view(), name='distributors_invoices_notify'),
     path('invoices/info/<str:invoice>/', InvoiceInfoView.as_view(), name="distributors_invoice_info"),
     path('analytics/', AnalyticsView.as_view(), name='analytics_view'),
     path('salesman/', SalesmanListView.as_view(), name='distributors_salesman'),
