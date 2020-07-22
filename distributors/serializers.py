@@ -3,6 +3,8 @@ from .models import Distributor, State, District, Purchase, Due, Subscription, P
 from logs.models import Quantity
 from django.utils import timezone
 from salesman.models import Salesman, Inventory
+from retailers.models import Retailer, Request
+from ledger.models import Invoice, BalanceSheet, Balance
 
 class DistributorSerializer(serializers.ModelSerializer):
     
@@ -178,7 +180,6 @@ class SalesmanAddSerializer(serializers.Serializer):
         salesman.distributor.add(distributor)
         return salesman
 
-
 class SalesmanDeleteSerializer(serializers.Serializer):
     salesman = serializers.IntegerField()
 
@@ -195,3 +196,44 @@ class SalesmanDeleteSerializer(serializers.Serializer):
         salesman = self.validated_data["salesman"]
         salesman.distributor.remove(distributor)
         return salesman
+
+
+class RetailerAddSerializer(serializers.Serializer):
+    retailer = serializers.IntegerField()
+    opening_balance = serializers.FloatField()
+
+    def validate_retailer(self, retailer):
+        try:
+            retailer = Retailer.objects.get(pk=retailer)
+            return retailer
+        except Retailer.DoesNotExist:
+            raise serializers.ValidationError("Retailer does not exist")
+
+    def create(self, validated_data):
+        user = self.context["user"]
+        distributor = Distributor.objects.get(user=user)
+        retailer = self.validated_data["retailer"]
+        try:
+            check_balance = Balance.objects.get(retailer=retailer, distributor=distributor)
+        except Balance.DoesNotExist:
+            Balance.objects.create(retailer=retailer, distributor=distributor, opening_balance=validated_data["opening_balance"], closing_balance=validated_data["opening_balance"])
+        retailer.distributors.add(distributor)
+        return retailer
+
+
+class RetailerDeleteSerializer(serializers.Serializer):
+    retailer = serializers.IntegerField()
+
+    def validate_retailer(self, retailer):
+        try:
+            retailer = Retailer.objects.get(pk=retailer)
+            return retailer
+        except Retailer.DoesNotExist:
+            raise serializers.ValidationError("Retailer does not exist")
+
+    def create(self, validated_data):
+        user = self.context["user"]
+        distributor = Distributor.objects.get(user=user)
+        retailer = self.validated_data["retailer"]
+        retailer.distributors.remove(distributor)
+        return retailer

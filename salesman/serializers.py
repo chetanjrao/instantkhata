@@ -108,8 +108,16 @@ class InvoiceUpdateSerializer(serializers.Serializer):
 
     permission_classes = [permissions.IsAuthenticated, local_permissions.DistributorPermission, local_permissions.SalesmanPermission]
 
+
+    def validate_invoice(self, invoice):
+        invoice = Invoice.objects.get(uid=invoice)
+        if invoice.balance >= self.initial_data["amount"]:
+            return invoice
+        else:
+            raise serializers.ValidationError("Amount exceeded remaining balance")
+
     def create(self, validated_data):
-        invoice = Invoice.objects.get(uid=validated_data["invoice"])
+        invoice = validated_data["invoice"]
         current_balance = Balance.objects.get(retailer=invoice.retailer, distributor=invoice.distributor)
         new_balance_sheet = BalanceSheet(
             invoice = invoice,

@@ -35,6 +35,7 @@ class Product(models.Model):
     hsn = models.CharField(max_length=16)
     base_price = models.FloatField()
     created_at = models.DateTimeField(auto_now=True, null=True)
+    is_deleted = models.BooleanField(default=False)
     
     def __str__(self):
         return '{} - {}'.format(self.name, self.distributor.name)

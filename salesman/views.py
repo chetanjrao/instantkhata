@@ -51,7 +51,7 @@ class InvoiceEditView(APIView):
             invoice_serializer.save()
             return Response(createMessage("Invoice updated succesfully", 200))
         else:
-            return Response(invoice_serializer.errors)
+            return Response(invoice_serializer.errors, status=400)
 
     def get_queryset(self):
         return Invoice.objects.all()
@@ -127,7 +127,7 @@ class InvoiceListView(APIView):
 class TransactionView(APIView):
 
     def post(self, request, t_id):
-        transactions = BalanceSheet.objects.filter(distributor__pk=request.data["distributor"], created_by__user=request.user).values('retailer__name', 'amount', 'payment_mode', 'is_credit', 'created_at', 'invoice__uid')
+        transactions = BalanceSheet.objects.filter(pk=t_id).values('retailer__name', 'amount', 'payment_mode', 'is_credit', 'created_at', 'invoice__uid')
         return Response(transactions)
 
     def get_queryset(self):
@@ -157,4 +157,4 @@ def invoice_view(request, invoice):
         balance_sheet = BalanceSheet.objects.filter(invoice=invoice).order_by('-created_at')
         return render(request, "invoice.html", { "invoice": invoice, "balance_sheets": balance_sheet, "amount": amount })
     except Invoice.DoesNotExist:
-        return HttpResponse("Requested entity does not exist")
+        return HttpResponse("Requested entity does not exist", status=status.HTTP_404_NOT_FOUND)
