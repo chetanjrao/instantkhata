@@ -81,3 +81,21 @@ class Quantity(models.Model):
 
     def __str__(self):
         return "{} - {} units".format(self.product, self.quantity)
+
+class PaymentMode(models.Model):
+    name = models.CharField(max_length=512)
+    provider = models.ImageField(upload_to='uploads/providers/')
+
+    def __str__(self):
+        return self.name
+
+class PaymentMethod(models.Model):
+    mode = models.ForeignKey(to=PaymentMode, on_delete=models.CASCADE)
+    distributor = models.ForeignKey(to=Distributor, on_delete=models.CASCADE)
+    account_name = models.CharField(max_length=512)
+    account_id = models.CharField(max_length=512)
+    is_bank = models.BooleanField(default=False)
+    ifsc = models.CharField(max_length=512, null=True, blank=True)
+
+    def __str__(self):
+        return '{} -> {}'.format(self.distributor.name, self.mode.name)

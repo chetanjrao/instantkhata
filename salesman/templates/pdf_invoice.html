@@ -1,3 +1,4 @@
+{% extends "easy_pdf/base.html" %}
 {% load tz %}
 <!DOCTYPE html>
 <html lang="en">
@@ -166,14 +167,12 @@ tr:nth-child(2n) {
                     <th>CGST</th>
                     <th>SGST</th>
                     <th>Net Total</th>
-                    <th>Remaining Balance</th>
                 </thead>
                 <tbody>
                     <td>{{ amount|floatformat:-2 }}</td>
                     <td>9%</td>
                     <td>9%</td>
                     <td>{{ invoice.total_amount|floatformat:-2 }}</td>
-                    <td>&#x20b9; {{ invoice.balance|floatformat:-2 }}</td>
                 </tbody>
             </table>
             <h3>
@@ -185,7 +184,6 @@ tr:nth-child(2n) {
                         <th>Opening Balance</th>
                         <th>Amount Paid</th>
                         <th>Payment Mode</th>
-                        <th>Account ID</th>
                         <th>Closing Balance</th>
                         <th>Date of Payment</th>
                     </thead>
@@ -194,8 +192,7 @@ tr:nth-child(2n) {
                         <tr>
                             <td>&#x20b9; {{ balance_sheet.opening_balance|floatformat:-2 }}</td>
                             <td>&#x20b9; {{ balance_sheet.amount|floatformat:-2 }} </td>
-                            <td>{{ balance_sheet.payment_mode.mode.name|title }}</td>
-                            <td>{{ balance_sheet.payment_id }}</td>
+                            <td>{{ balance_sheet.payment_mode|upper }}</td>
                             <td>&#x20b9; {{ balance_sheet.closing_balance|floatformat:-2 }}</td>
                             <td>{{ balance_sheet.created_at|localtime }}</td>
                         </tr>

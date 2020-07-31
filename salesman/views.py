@@ -58,15 +58,17 @@ class InvoiceEditView(APIView):
 
 class SalesmanAnalyticsView(APIView):
 
-    def get(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         today = localtime()
         month_start = today.replace(day=1, second=0, minute=0, hour=0, microsecond=0)
         prev_month_end = (today.replace(day=1, second=59, minute=59, hour=23) - timedelta(days=1))
         prev_month_start = prev_month_end.replace(day=1, second=0, minute=0, hour=0)
-        current_sales = Invoice.objects.filter(salesman=Salesman.objects.get(user=request.user), created_at__gte=month_start, created_at__lte=today).aggregate(sales=Sum('total_amount'))
-        previous_sales = Invoice.objects.filter(salesman=Salesman.objects.get(user=request.user), created_at__gte=prev_month_start, created_at__lte=prev_month_end).aggregate(sales=Sum('total_amount'))
+        current_sales = Invoice.objects.filter(salesman=Salesman.objects.get(user=request.user), distributor=request.data["distributor"], created_at__gte=month_start, created_at__lte=today).aggregate(sales=Sum('total_amount'))
+        previous_sales = Invoice.objects.filter(salesman=Salesman.objects.get(user=request.user), distributor=request.data["distributor"], created_at__gte=prev_month_start, created_at__lte=prev_month_end).aggregate(sales=Sum('total_amount'))
         if previous_sales["sales"] is None:
             previous_sales["sales"] = 0
+        if current_sales["sales"] is None:
+            current_sales["sales"] = 0
         return Response({
             "status": (current_sales["sales"] - previous_sales["sales"]) * 100 / previous_sales["sales"] if previous_sales["sales"] else current_sales["sales"],
             "total": current_sales["sales"]
@@ -79,10 +81,20 @@ class SalesmanAnalyticsView(APIView):
 
 class TransactionList(APIView):
 
-    def get(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         today = localtime()
         month_start = today.replace(day=1, second=0, minute=0, hour=0, microsecond=0)
-        transactions = BalanceSheet.objects.filter(created_by=Salesman.objects.get(user=request.user), created_at__gte=month_start, created_at__lte=today)
+        transactions = BalanceSheet.objects.filter(created_by=Salesman.objects.get(user=request.user), distributor=request.data["distributor"], created_at__gte=month_start, created_at__lte=today).order_by('-created_at')
+        serializer = BalanceSheetListSerializer(transactions, many=True)
+        return Response(serializer.data)
+
+    def get_queryset(self):
+        return BalanceSheet.objects.all()
+
+class AllTransactionList(APIView):
+
+    def post(self, request, *args, **kwargs):
+        transactions = BalanceSheet.objects.filter(created_by=Salesman.objects.get(user=request.user), distributor=request.data["distributor"]).order_by('-created_at')
         serializer = BalanceSheetListSerializer(transactions, many=True)
         return Response(serializer.data)
 
@@ -146,7 +158,6 @@ class Distributors(APIView):
     
     def get_queryset(self):
         return Salesman.objects.all()
-
 
 def invoice_view(request, invoice):
     try:

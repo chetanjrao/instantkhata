@@ -1,13 +1,14 @@
 from .models import Salesman, Inventory
 from rest_framework import serializers, permissions
 from retailers.models import Retailer
-from distributors.models import Distributor, Product, Quantity
+from distributors.models import Distributor, Product, Quantity, PaymentMethod
 from ledger.models import Invoice, Sale, BalanceSheet, Balance
 from instantkhata import permissions as local_permissions
 from django.utils.timezone import now
 from salesman.models import Inventory
 from uuid import uuid4
 from logs.models import Quantity as logQty
+from math import ceil
 
 class SalemanCreationSerializer(serializers.ModelSerializer):
 
@@ -74,6 +75,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data["salesman"] = Salesman.objects.get(user=self.context["user"])
+        validated_data["payment_id"] = validated_data["payment_mode"].account_id
         new_sales = validated_data.pop("sales")
         final_amount = 0
         validated_data["uid"] = uuid4().hex
@@ -91,7 +93,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
         new_invoice.balance = final_amount - validated_data["amount_paid"]
         new_invoice.save()
         current_balance = Balance.objects.get(retailer=validated_data["retailer"], distributor=validated_data["distributor"])
-        new_balance_sheet = BalanceSheet(invoice=new_invoice, opening_balance=current_balance.closing_balance, closing_balance=current_balance.closing_balance+final_amount-validated_data["amount_paid"], payment_mode=validated_data["payment_mode"], created_by=validated_data["salesman"], retailer=validated_data["retailer"], distributor=validated_data["distributor"], amount=validated_data["amount_paid"], remaining_balance=final_amount - validated_data["amount_paid"])
+        new_balance_sheet = BalanceSheet(invoice=new_invoice, opening_balance=current_balance.closing_balance, closing_balance=current_balance.closing_balance+final_amount-validated_data["amount_paid"], payment_mode=validated_data["payment_mode"], payment_id=validated_data["payment_id"], created_by=validated_data["salesman"], retailer=validated_data["retailer"], distributor=validated_data["distributor"], amount=validated_data["amount_paid"], remaining_balance=final_amount - validated_data["amount_paid"])
         current_balance.opening_balance = current_balance.closing_balance
         current_balance.closing_balance = current_balance.closing_balance + final_amount - validated_data["amount_paid"]
         current_balance.last_updated_by = now()
@@ -103,7 +105,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
 class InvoiceUpdateSerializer(serializers.Serializer):
     invoice = serializers.CharField(max_length=100)
     amount = serializers.FloatField()
-    payment_mode = serializers.CharField()
+    payment_mode = serializers.IntegerField()
     deadline = serializers.DateField()
 
     permission_classes = [permissions.IsAuthenticated, local_permissions.DistributorPermission, local_permissions.SalesmanPermission]
@@ -111,10 +113,18 @@ class InvoiceUpdateSerializer(serializers.Serializer):
 
     def validate_invoice(self, invoice):
         invoice = Invoice.objects.get(uid=invoice)
-        if invoice.balance >= self.initial_data["amount"]:
+        if ceil(invoice.balance) >= self.initial_data["amount"] and self.initial_data["amount"] > 0:
             return invoice
         else:
             raise serializers.ValidationError("Amount exceeded remaining balance")
+
+    def validate_payment_mode(self, payment_mode):
+        try:
+            payment_mode = PaymentMethod.objects.get(pk=payment_mode)
+            return payment_mode
+        except PaymentMethod.DoesNotExist:
+            raise serializers.ValidationError("Payment mode does not exist")
+
 
     def create(self, validated_data):
         invoice = validated_data["invoice"]
@@ -125,13 +135,14 @@ class InvoiceUpdateSerializer(serializers.Serializer):
             closing_balance = current_balance.closing_balance - validated_data["amount"],
             amount = validated_data["amount"],
             is_credit=False,
-            remaining_balance=invoice.balance - validated_data["amount"],
+            remaining_balance=invoice.balance - validated_data["amount"] if invoice.balance - validated_data["amount"] > 0 else 0,
             payment_mode=validated_data["payment_mode"],
+            payment_id=validated_data["payment_mode"].account_id,
             created_by = Salesman.objects.get(user=self.context["user"]),
             retailer=invoice.retailer,
             distributor=invoice.distributor
         )
-        invoice.balance = invoice.balance - validated_data["amount"]
+        invoice.balance = invoice.balance - validated_data["amount"] if invoice.balance - validated_data["amount"] > 0 else 0
         invoice.deadline = validated_data["deadline"]
         invoice.last_updated_at = now()
         invoice.save()

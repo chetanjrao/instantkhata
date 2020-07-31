@@ -198,7 +198,7 @@ class GetInvoicesView(APIView):
 
 class InvoiceInfoView(APIView):
 
-    permission_classes = [permissions.IsAuthenticated, local_permissions.DistributorPermission]
+    permission_classes = [permissions.IsAuthenticated, local_permissions.DistributorPermission, local_permissions.SalesmanPermission]
 
     def get(self, request, invoice, *args):
         try:
@@ -221,7 +221,7 @@ class InvoiceInfoView(APIView):
                 resp["sales"].append({
                     "name": sale.product.name,
                     "quantity": sale.quantity,
-                    "amount": sale.taxable_value,
+                    "amount": sale.amount,
                     "price": sale.product.base_price
                 })
                 amount += sale.taxable_value

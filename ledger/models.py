@@ -1,6 +1,6 @@
 from django.db import models
 from salesman.models import Salesman
-from distributors.models import Distributor, Product
+from distributors.models import Distributor, Product, PaymentMethod
 from retailers.models import Retailer
 import uuid
 
@@ -24,7 +24,8 @@ class Invoice(models.Model):
     distributor = models.ForeignKey(to=Distributor, on_delete=models.CASCADE)
     total_amount = models.FloatField()
     amount_paid = models.FloatField()
-    payment_mode = models.CharField(max_length=16)
+    payment_mode = models.ForeignKey(to=PaymentMethod, on_delete=models.CASCADE)
+    payment_id = models.CharField(max_length=512)
     balance = models.FloatField()
     uid = models.CharField(max_length=32, unique=True, default=uuid.uuid4().hex)
     deadline = models.DateField()
@@ -39,7 +40,8 @@ class BalanceSheet(models.Model): # Balance records
     remaining_balance = models.FloatField()
     closing_balance = models.FloatField()
     is_credit = models.BooleanField(default=True)
-    payment_mode = models.CharField(max_length=16)
+    payment_mode = models.ForeignKey(to=PaymentMethod, on_delete=models.CASCADE)
+    payment_id = models.CharField(max_length=512)
     created_by = models.ForeignKey(to=Salesman, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now=True, null=True)
     retailer = models.ForeignKey(to=Retailer, on_delete=models.CASCADE)
