@@ -177,3 +177,11 @@ class InvoiceListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invoice
         fields = ('total_amount', 'uid', 'created_at', 'retailer')
+
+
+class PaymentMethodListSerializer(serializers.ModelSerializer):
+    image = serializers.ReadOnlyField(source='mode.provider.url')
+    name = serializers.ReadOnlyField(source='mode.name')
+    class Meta:
+        model = PaymentMethod
+        fields = ('id', 'account_id', 'account_name', 'is_bank', 'ifsc', 'image', 'name')

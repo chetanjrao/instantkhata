@@ -1,12 +1,13 @@
 from django.shortcuts import render, HttpResponse
-from .serializers import SalesSerializer, InvoiceSerializer, InvoiceUpdateSerializer, BalanceSheetListSerializer
+from .serializers import SalesSerializer, InvoiceSerializer, InvoiceUpdateSerializer, BalanceSheetListSerializer, PaymentMethodListSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from ledger.models import Sale, Invoice, BalanceSheet
+from distributors.models import PaymentMethod
 from distributors.views import createMessage
 from django.utils.timezone import now, timedelta, datetime, localtime
-from django.db.models import Sum
+from django.db.models import Sum, F
 from .models import Salesman, Inventory
 from instantkhata import permissions
 from retailers.models import Retailer
@@ -144,6 +145,19 @@ class TransactionView(APIView):
 
     def get_queryset(self):
         return Invoice.objects.all()
+
+class PaymentListView(APIView):
+
+    def post(self, request):
+        payment_methods = PaymentMethod.objects.filter(distributor=request.data["distributor"])
+        serializer = PaymentMethodListSerializer(payment_methods, many=True)
+        return Response(serializer.data)
+
+
+    def get_queryset(self):
+        return PaymentMethod.objects.all()
+    
+
 
 class Distributors(APIView):
    

@@ -1,5 +1,6 @@
 from django.db import models
 from accounts.models import User, District, State
+from django.conf import settings
 
 # Create your models here.
 class Distributor(models.Model):
@@ -88,6 +89,7 @@ class PaymentMode(models.Model):
 
     def __str__(self):
         return self.name
+
 
 class PaymentMethod(models.Model):
     mode = models.ForeignKey(to=PaymentMode, on_delete=models.CASCADE)
