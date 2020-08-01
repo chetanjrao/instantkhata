@@ -129,7 +129,7 @@ class InventoryListView(APIView):
 class InvoiceListView(APIView):
 
     def post(self, request):
-        invoices = Invoice.objects.filter(distributor__pk=request.data["distributor"], salesman__user=request.user).values('total_amount', 'uid', 'retailer__name', 'created_at')
+        invoices = Invoice.objects.filter(distributor__pk=request.data["distributor"], salesman__user=request.user).values('total_amount', 'uid', 'retailer__name', 'created_at').order_by('-created_at')
         return Response(invoices)
 
     def get_queryset(self):

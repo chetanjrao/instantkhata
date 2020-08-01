@@ -93,12 +93,19 @@ class InvoiceSerializer(serializers.ModelSerializer):
         new_invoice.balance = final_amount - validated_data["amount_paid"]
         new_invoice.save()
         current_balance = Balance.objects.get(retailer=validated_data["retailer"], distributor=validated_data["distributor"])
-        new_balance_sheet = BalanceSheet(invoice=new_invoice, opening_balance=current_balance.closing_balance, closing_balance=current_balance.closing_balance+final_amount-validated_data["amount_paid"], payment_mode=validated_data["payment_mode"], payment_id=validated_data["payment_id"], created_by=validated_data["salesman"], retailer=validated_data["retailer"], distributor=validated_data["distributor"], amount=validated_data["amount_paid"], remaining_balance=final_amount - validated_data["amount_paid"])
+        new_balance_sheet = BalanceSheet(invoice=new_invoice, opening_balance=current_balance.closing_balance, closing_balance=current_balance.closing_balance+final_amount, payment_mode=validated_data["payment_mode"], payment_id=validated_data["payment_id"], created_by=validated_data["salesman"], retailer=validated_data["retailer"], distributor=validated_data["distributor"], amount=final_amount, remaining_balance=final_amount)
+        new_balance_sheet.save()
         current_balance.opening_balance = current_balance.closing_balance
-        current_balance.closing_balance = current_balance.closing_balance + final_amount - validated_data["amount_paid"]
+        current_balance.closing_balance = current_balance.closing_balance + final_amount
         current_balance.last_updated_by = now()
         current_balance.save()
-        new_balance_sheet.save()
+        current_balance = Balance.objects.get(retailer=validated_data["retailer"], distributor=validated_data["distributor"])
+        sub_balance_sheet = BalanceSheet(invoice=new_invoice, opening_balance=current_balance.closing_balance, closing_balance=current_balance.closing_balance-validated_data["amount_paid"], payment_mode=validated_data["payment_mode"], payment_id=validated_data["payment_id"], created_by=validated_data["salesman"], retailer=validated_data["retailer"], distributor=validated_data["distributor"], amount=validated_data["amount_paid"], remaining_balance=final_amount - validated_data["amount_paid"], is_credit=False)
+        sub_balance_sheet.save()
+        current_balance.opening_balance = current_balance.closing_balance
+        current_balance.closing_balance = current_balance.closing_balance - validated_data["amount_paid"]
+        current_balance.last_updated_by = now()
+        current_balance.save()
         return new_invoice
     
 
@@ -155,12 +162,12 @@ class InvoiceUpdateSerializer(serializers.Serializer):
 
 
 class BalanceSheetListSerializer(serializers.ModelSerializer):
-
+    image = serializers.ReadOnlyField(source='payment_mode.mode.provider.url')
     permission_classes = [permissions.IsAuthenticated, local_permissions.DistributorPermission, local_permissions.SalesmanPermission]
 
     class Meta:
         model = BalanceSheet
-        fields = ('id', 'amount', 'is_credit', 'created_at', )
+        fields = ('id', 'amount', 'is_credit', 'image', 'created_at', )
 
 
 class InvoiceListSerializer(serializers.ModelSerializer):

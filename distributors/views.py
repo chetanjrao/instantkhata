@@ -314,7 +314,7 @@ class RetailerView(APIView):
         try:
             balance = Balance.objects.get(retailer__pk=retailer)
             invoices = Invoice.objects.filter(retailer__pk=retailer, distributor__user=request.user).order_by('-created_at').values('total_amount', 'uid', 'created_at', salesman_name=F('salesman__user__first_name'))
-            transactions = BalanceSheet.objects.filter(retailer__pk=retailer, distributor__user=request.user).order_by('-created_at').values('amount', 'is_credit', 'payment_mode', 'id', 'created_at', salesman=F('created_by__user__first_name'))
+            transactions = BalanceSheet.objects.filter(retailer__pk=retailer, distributor__user=request.user).order_by('-created_at').values('amount', 'is_credit', 'payment_mode', 'id', 'created_at', payment_image=F('payment_mode__provider'), salesman=F('created_by__user__first_name'))
             return Response({
                 "retailer": curr_retailer[0],
                 "balance": balance.closing_balance,

@@ -3,12 +3,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,700;1,600&display=swap" rel="stylesheet"> 
-    <title> Sale Invoice | Instant Khata | TecideXa Services Pvt. Ltd. </title>
+    <title> Sales Invoice #{{ invoice.pk }} | {{invoice.retailer.name}} | Instant Khata | {% now "h:i A d M Y" %}</title>
     <style type="text/css">
 * {
     font-family: 'Montserrat', sans-serif;
+}
+
+@media print {
+    * {
+        -webkit-print-color-adjust: exact;
+    }
 }
 
 .container {
@@ -213,4 +218,7 @@ tr:nth-child(2n) {
         </div>
     </div>
 </body>
+<script>
+    window.print()
+</script>
 </html>
