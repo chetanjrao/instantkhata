@@ -4,13 +4,15 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from ledger.models import Sale, Invoice, BalanceSheet
-from distributors.models import PaymentMethod
+from distributors.models import PaymentMethod, Type
 from distributors.views import createMessage
 from django.utils.timezone import now, timedelta, datetime, localtime
 from django.db.models import Sum, F
 from .models import Salesman, Inventory
 from instantkhata import permissions
+from rest_framework import permissions as main_permissions
 from retailers.models import Retailer
+from distributors.serializers import TypeCreationSerializer
 # Create your views here.
 
 
@@ -107,7 +109,7 @@ class RetailersListView(APIView):
 
     def get(self, request, *args, **kwargs):
         try:
-            retailers = Retailer.objects.filter(distributors__pk=request.GET["distributor"]).values('id', 'name', 'latitude', 'longitude', 'user__mobile')
+            retailers = Retailer.objects.filter(distributors__pk=request.GET["distributor"]).values('id', 'name', 'latitude', 'longitude', 'address' ,mobile=F('user__mobile'))
             return Response(retailers)
         except (KeyError, Retailer.DoesNotExist):
             return Response(createMessage("Bad Request", 400), status=status.HTTP_400_BAD_REQUEST)
@@ -119,12 +121,23 @@ class RetailersListView(APIView):
 class InventoryListView(APIView):
 
     def post(self, request, *args, **kwargs):
-        inventory = Inventory.objects.filter(salesman__user=request.user, product__distributor=request.data["distributor"]).values('product_id', 'product__name', 'product__mrp', 'quantity')
+        inventory = Inventory.objects.filter(salesman__user=request.user, product__distributor=request.data["distributor"]).values('product_id', 'quantity', type= F('product__type'), name=F('product__name'), mrp=F('product__mrp'), base_price=F('product__base_price'))
         return Response(inventory)
 
 
     def get_queryset(self):
         return Inventory.objects.all()
+
+
+class TypesView(APIView):
+
+    permission_classes = [main_permissions.IsAuthenticated, permissions.DistributorPermission, permissions.SalesmanPermission]
+
+    def post(self, request, *args, **kwargs):
+        data = Type.objects.filter(distributor=request.data["distributor"])
+        serializer = TypeCreationSerializer(data, many=True)
+        return Response(serializer.data)
+
 
 
 class InvoiceListView(APIView):
@@ -149,7 +162,7 @@ class TransactionView(APIView):
 class PaymentListView(APIView):
 
     def post(self, request):
-        payment_methods = PaymentMethod.objects.filter(distributor=request.data["distributor"])
+        payment_methods = PaymentMethod.objects.filter(distributor=request.data["distributor"], is_deleted=False)
         serializer = PaymentMethodListSerializer(payment_methods, many=True)
         return Response(serializer.data)
 

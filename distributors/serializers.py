@@ -1,5 +1,5 @@
 from rest_framework import serializers, validators, fields
-from .models import Distributor, State, District, Purchase, Due, Subscription, Package, Product, Quantity as Qty, Type
+from .models import Distributor, State, District, Purchase, Due, Subscription, Package, Product, Quantity as Qty, Type, PaymentMode, PaymentMethod
 from logs.models import Quantity
 from django.utils import timezone
 from salesman.models import Salesman, Inventory
@@ -117,7 +117,6 @@ class SalesmanTransferSerializer(serializers.Serializer):
             user = self.context["user"]
             distributor = Distributor.objects.get(user=user)
             product = Product.objects.get(pk=product, distributor=distributor)
-            self.product = product
             return product
         except Product.DoesNotExist:
             raise validators.ValidationError("Product is not associated or does not exist")
@@ -125,14 +124,13 @@ class SalesmanTransferSerializer(serializers.Serializer):
     def validate_salesman(self, salesman):
         try:
             salesman_obj = Salesman.objects.get(pk=salesman)
-            self.salesman = salesman_obj
             return salesman_obj
         except Salesman.DoesNotExist:
             raise validators.ValidationError("Salesman does not exist")
 
     def validate_quantity(self, quantity):
         try:
-            quantity_check = Qty.objects.get(product=self.product)
+            quantity_check = Qty.objects.get(product=self.initial_data["product"])
             if quantity <= quantity_check.quantity:
                 return quantity
             else:
@@ -143,16 +141,15 @@ class SalesmanTransferSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         try:
-            salesman_inventory = Inventory.objects.get(salesman=self.validated_data["salesman"], product=self.validated_data["product"])
-            salesman_inventory.quantity = salesman_inventory.quantity + quantity
-            print(salesman_inventory)
+            salesman_inventory = Inventory.objects.get(salesman=validated_data["salesman"].pk, product=validated_data["product"])
+            salesman_inventory.quantity = salesman_inventory.quantity + validated_data["quantity"]
             salesman_inventory.save()
             current_quantity = Qty.objects.get(product=self.validated_data["product"])
-            current_quantity.quantity = current_quantity.quantity - self.validated_data["quantity"]
+            current_quantity.quantity = current_quantity.quantity - validated_data["quantity"]
             current_quantity.save()
             return salesman_inventory
         except Inventory.DoesNotExist:
-            new_inventory = Inventory(salesman=self.validated_data["salesman"], product=self.validated_data["product"], quantity=self.validated_data["quantity"])
+            new_inventory = Inventory(salesman=self.validated_data["salesman"].pk, product=self.validated_data["product"], quantity=self.validated_data["quantity"])
             new_inventory.save()
             current_quantity = Qty.objects.get(product=self.validated_data["product"])
             current_quantity.quantity = current_quantity.quantity - self.validated_data["quantity"]
@@ -237,3 +234,28 @@ class RetailerDeleteSerializer(serializers.Serializer):
         retailer = self.validated_data["retailer"]
         retailer.distributors.remove(distributor)
         return retailer
+
+class PaymentModeSerializer(serializers.ModelSerializer):
+    image = serializers.ReadOnlyField(source='provider.url')
+
+    class Meta:
+        model = PaymentMode
+        fields = ('name', 'image')
+
+
+class PaymentMethodListSerializer(serializers.ModelSerializer):
+    mode = serializers.ReadOnlyField(source='mode.name')
+    image = serializers.ReadOnlyField(source='mode.provider.url')
+    class Meta:
+        model = PaymentMethod
+        fields = ('mode', 'image', 'account_name', 'account_id', 'is_bank', 'ifsc')
+
+
+class PaymentMethodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentMethod
+        fields = ('mode', 'account_name', 'account_id', 'is_bank', 'ifsc')
+
+    def create(self, validated_data):
+        validated_data["distributor"] = Distributor.objects.get(user=self.context["user"])
+        return super().create(validated_data)

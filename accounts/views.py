@@ -19,6 +19,11 @@ class UserManager(APIView):
         current_user:User = request.user
         return Response(current_user.get_profile())
 
+class RegisterView(APIView):
+
+    def post(self, request, *agrs):
+        serializer = UserSerializer(data=request.data)
+
 class AuthManager(APIView):
 
     permission_classes = [permissions.AllowAny]

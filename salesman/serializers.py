@@ -90,7 +90,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             curr_inventory.save()
             final_amount += sale["amount"]
         new_invoice.total_amount = final_amount
-        new_invoice.balance = final_amount - validated_data["amount_paid"]
+        new_invoice.balance = final_amount - validated_data["amount_paid"] if final_amount - validated_data["amount_paid"] > 0 else 0
         new_invoice.save()
         current_balance = Balance.objects.get(retailer=validated_data["retailer"], distributor=validated_data["distributor"])
         new_balance_sheet = BalanceSheet(invoice=new_invoice, opening_balance=current_balance.closing_balance, closing_balance=current_balance.closing_balance+final_amount, payment_mode=validated_data["payment_mode"], payment_id=validated_data["payment_id"], created_by=validated_data["salesman"], retailer=validated_data["retailer"], distributor=validated_data["distributor"], amount=final_amount, remaining_balance=final_amount)
@@ -100,7 +100,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
         current_balance.last_updated_by = now()
         current_balance.save()
         current_balance = Balance.objects.get(retailer=validated_data["retailer"], distributor=validated_data["distributor"])
-        sub_balance_sheet = BalanceSheet(invoice=new_invoice, opening_balance=current_balance.closing_balance, closing_balance=current_balance.closing_balance-validated_data["amount_paid"], payment_mode=validated_data["payment_mode"], payment_id=validated_data["payment_id"], created_by=validated_data["salesman"], retailer=validated_data["retailer"], distributor=validated_data["distributor"], amount=validated_data["amount_paid"], remaining_balance=final_amount - validated_data["amount_paid"], is_credit=False)
+        sub_balance_sheet = BalanceSheet(invoice=new_invoice, opening_balance=current_balance.closing_balance, closing_balance=current_balance.closing_balance-validated_data["amount_paid"], payment_mode=validated_data["payment_mode"], payment_id=validated_data["payment_id"], created_by=validated_data["salesman"], retailer=validated_data["retailer"], distributor=validated_data["distributor"], amount=validated_data["amount_paid"], remaining_balance=final_amount - validated_data["amount_paid"] if final_amount - validated_data["amount_paid"] > 0 else 0, is_credit=False)
         sub_balance_sheet.save()
         current_balance.opening_balance = current_balance.closing_balance
         current_balance.closing_balance = current_balance.closing_balance - validated_data["amount_paid"]

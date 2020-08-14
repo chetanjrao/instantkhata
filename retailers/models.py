@@ -33,3 +33,8 @@ class Request(models.Model):
     quantity = models.IntegerField(choices=CHOICES, default=0)
     status = models.IntegerField()
     updated_at = models.DateTimeField(auto_now=True, null=True)
+
+class Customer(models.Model):
+    name = models.CharField(max_length=512)
+    mobile = models.CharField(max_length=16)
+    email = models.EmailField(null=True)

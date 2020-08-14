@@ -12,12 +12,13 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'email', 'image']
-    # def create(self, validated_data):
-    #     user = get_user_model().objects.create(**validated_data)
-    #     password = User.objects.make_random_password(length=16)
-    #     user.set_password(password)
-    #     user.save()
-    #     return user
+        
+    def create(self, validated_data):
+        user = get_user_model().objects.create(**validated_data)
+        password = User.objects.make_random_password(length=16)
+        user.set_password(password)
+        user.save()
+        return user
 
     def update(self, instance, validated_data):
         instance.first_name = validated_data.get("first_name", instance.first_name)

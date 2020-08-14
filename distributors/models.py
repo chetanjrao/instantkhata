@@ -22,6 +22,8 @@ class Distributor(models.Model):
 class Type(models.Model):
     name = models.CharField(max_length=32)
     distributor = models.ForeignKey(to=Distributor, on_delete=models.CASCADE)
+    is_deleted = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
     created_at = models.DateTimeField(auto_now=True, null=True)
 
     def __str__(self):
@@ -35,6 +37,7 @@ class Product(models.Model):
     mrp = models.FloatField()
     hsn = models.CharField(max_length=16)
     base_price = models.FloatField()
+    updated_at = models.DateTimeField(auto_now=True, null=True)
     created_at = models.DateTimeField(auto_now=True, null=True)
     is_deleted = models.BooleanField(default=False)
     
@@ -95,8 +98,10 @@ class PaymentMethod(models.Model):
     mode = models.ForeignKey(to=PaymentMode, on_delete=models.CASCADE)
     distributor = models.ForeignKey(to=Distributor, on_delete=models.CASCADE)
     account_name = models.CharField(max_length=512)
-    account_id = models.CharField(max_length=512)
+    account_id = models.CharField(max_length=128, unique=True)
     is_bank = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
     ifsc = models.CharField(max_length=512, null=True, blank=True)
 
     def __str__(self):
