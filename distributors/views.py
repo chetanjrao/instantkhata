@@ -7,13 +7,13 @@ from .serializers import (DistributorSerializer, InventorySerializer,
     SalesmanTransferSerializer, SalesmanAddSerializer, 
     SalesmanDeleteSerializer, RetailerAddSerializer, 
     RetailerDeleteSerializer, PaymentModeSerializer, PaymentMethodSerializer,
-    PaymentMethodListSerializer
+    PaymentMethodListSerializer, PackageListSerializer, SubscriptionSerializer
     )
 from rest_framework.response import Response
 from instantkhata import permissions as local_permissions
 from instantkhata.utils import createMessage, send_message
 from rest_framework import status
-from .models import Product, Type, Distributor, PaymentMode, PaymentMethod
+from .models import Product, Type, Distributor, PaymentMode, PaymentMethod, Package, Subscription
 from salesman.models import Salesman, Inventory
 from ledger.models import Invoice, BalanceSheet, Balance
 from django.utils.timezone import localtime, datetime, timedelta, now
@@ -32,12 +32,6 @@ class DistributorRegistration(APIView):
             serializer.save()
             return Response(serializer.data)
 
-
-    def patch(self, request, *args, **kwargs):
-        """
-        Verify payment signature here and proceed updation
-        """
-        return Response("Welcome")
 
 class InventoryListView(APIView):
 
@@ -451,4 +445,33 @@ class DeletePaymentView(APIView):
 
     def get_queryset(self):
         modes = PaymentMethod.objects.all()
+        return modes
+
+
+class PackagesListView(APIView):
+
+    def get(self, request):
+        packages = Package.objects.all()
+        serializer = PackageListSerializer(packages, many=True)
+        return Response(serializer.data)
+
+    def get_queryset(self):
+        modes = Package.objects.all()
+        return modes
+
+
+class BuySubscriptionView(APIView):
+    
+    def post(self, request):
+        serializer = SubscriptionSerializer(data=request.data, context={
+            "user": request.user
+        })
+        if serializer.is_valid():
+            serializer.save()
+            return Response(createMessage("Thank you for buying the package", 200))
+        else:
+            return Response(serializer.errors, 400)
+
+    def get_queryset(self):
+        modes = Subscription.objects.all()
         return modes

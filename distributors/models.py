@@ -47,36 +47,28 @@ class Product(models.Model):
 class Package(models.Model):
     name = models.CharField(max_length=64)
     amount = models.FloatField()
-    duration = models.IntegerField(help_text="Total months this packages will work")
+    duration = models.IntegerField(help_text="Total days this packages will work")
     created_at = models.DateTimeField(auto_now=True, null=True)
 
     def __str__(self):
         return self.name
 
-class Purchase(models.Model):
-    distributor = models.OneToOneField(to=Distributor, on_delete=models.CASCADE)
-    transaction_id = models.CharField(max_length=256)
-    order_id = models.CharField(max_length=256)
-    payment_signature = models.CharField(max_length=512)
-    amount_paid = models.FloatField()
-    payment_date = models.DateField()
-    created_at = models.DateTimeField(auto_now=True)
-
 class Subscription(models.Model):
-    distributor = models.OneToOneField(to=Distributor, on_delete=models.CASCADE)
+    distributor = models.ForeignKey(to=Distributor, on_delete=models.CASCADE)
     package = models.ForeignKey(to=Package, on_delete=models.CASCADE)
     amount_paid = models.FloatField()
-    transaction_id = models.CharField(max_length=256)
-    order_id = models.CharField(max_length=256)
-    payment_signature = models.CharField(max_length=512)
-    payment_date = models.DateField()
-    created_at = models.DateTimeField(auto_now=True)
+    transaction_id = models.UUIDField(unique=True)
+    order_id = models.CharField(max_length=128, unique=True)
+    payment_signature = models.CharField(max_length=255, unique=True)
+    payment_id =  models.CharField(max_length=128, unique=True)
+    payment_date = models.DateField(auto_now=True, null=True)
+    created_at = models.DateTimeField(auto_now=True, null=True)
 
 class Due(models.Model):
     distributor = models.OneToOneField(to=Distributor, on_delete=models.CASCADE)
     subscription = models.ForeignKey(to=Subscription, on_delete=models.CASCADE)
     due_date = models.DateField()
-    created_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
 
 class Quantity(models.Model):
     product = models.OneToOneField(to=Product, on_delete=models.CASCADE, related_name='quantity_of_product')

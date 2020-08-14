@@ -29,3 +29,10 @@ class Notifications(models.Model):
     message = models.TextField()
     created_at = models.DateTimeField(auto_now=True)
     distributor = models.ForeignKey(to=Distributor, on_delete=models.PROTECT)
+
+class Messages(models.Model):
+    title = models.CharField(max_length=512)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now=True)
+    distributor = models.ForeignKey(to=Distributor, on_delete=models.PROTECT)

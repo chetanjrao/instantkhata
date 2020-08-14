@@ -1,10 +1,12 @@
 from rest_framework import serializers, validators, fields
-from .models import Distributor, State, District, Purchase, Due, Subscription, Package, Product, Quantity as Qty, Type, PaymentMode, PaymentMethod
+from .models import Distributor, State, District, Due, Subscription, Package, Product, Quantity as Qty, Type, PaymentMode, PaymentMethod
 from logs.models import Quantity
 from django.utils import timezone
 from salesman.models import Salesman, Inventory
 from retailers.models import Retailer, Request
 from ledger.models import Invoice, BalanceSheet, Balance
+from uuid import uuid4
+from django.utils.timezone import now, timedelta
 
 class DistributorSerializer(serializers.ModelSerializer):
     
@@ -22,30 +24,6 @@ class DistributorSerializer(serializers.ModelSerializer):
         instance.name = validated_data.get(validated_data['name'], instance.name)
         instance.save()
         return instance
-
-class PurchaseSerializer(serializers.ModelSerializer):
-    
-    class Meta:
-        model = Purchase
-        fields = '__all__'
-
-    def create(self, validated_data):
-        return super().create(validated_data)
-
-
-class DueDateSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Due
-    
-    def update(self, instance, validated_data):
-        return super().update(instance, validated_data)
-
-class SubscriptionSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Subscription
-        fields = '__all__'
 
 
 class InventorySerializer(serializers.ModelSerializer):
@@ -259,3 +237,42 @@ class PaymentMethodSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data["distributor"] = Distributor.objects.get(user=self.context["user"])
         return super().create(validated_data)
+
+
+class PackageListSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Package
+        fields = ('name', 'amount', 'duration')
+
+
+class SubscriptionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Subscription
+        fields = ('package', 'amount_paid', 'order_id', 'payment_id', 'payment_signature')
+
+
+    def validate_amount_paid(self, amount_paid):
+        package = Package.objects.get(id=self.initial_data["package"])
+        if amount_paid != package.amount:
+            raise serializers.ValidationError("Invalid amount request")
+        return amount_paid
+
+    def create(self, validated_data):
+        distributor = Distributor.objects.get(user=self.context["user"])
+        validated_data["distributor"] = distributor
+        validated_data["transaction_id"] = uuid4()
+        package = validated_data["package"]
+        due_cal = now() + timedelta(days=package.duration)
+        subscription = Subscription.objects.create(**validated_data)
+        try:
+            due_details = Due.objects.get(distributor=distributor)
+            due_details.subscription = subscription
+            new_due_cal = due_cal + timedelta(days=package.duration)
+            due_details.due_date = new_due_cal
+            due_details.updated_at = now()
+            due_details.save()
+        except Due.DoesNotExist:
+            new_due_date = Due.objects.create(distributor=distributor, subscription=subscription, due_date=due_cal)
+        return subscription

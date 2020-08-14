@@ -8,7 +8,7 @@ InvoiceInfoView, AnalyticsView, SalesmanListView,
 RetailersListView, RetailerAddView, RetailerDeleteView,
 TransactionsView, SingleTransactionView, RetailerView,
 NotifyInvoice, PaymentModeListView, PaymentMethodListView,
-PaymentMethodCreationView, DeletePaymentView
+PaymentMethodCreationView, DeletePaymentView, PackagesListView, BuySubscriptionView
 )
 
 urlpatterns = [
@@ -36,5 +36,7 @@ urlpatterns = [
     path('paymentmodes/', PaymentModeListView.as_view(), name='payment_modes'),
     path('paymentmethods/', PaymentMethodListView.as_view(), name='all_payment_methods'),
     path('paymentmethods/create/', PaymentMethodCreationView.as_view(), name='create_payment_method'),
-    path('paymentmethods/delete/', DeletePaymentView.as_view(), name='delete_payment_method')
+    path('paymentmethods/delete/', DeletePaymentView.as_view(), name='delete_payment_method'),
+    path('packages/', PackagesListView.as_view(), name='packages'),
+    path('checkout/', BuySubscriptionView.as_view(), name='buy_subscription')
 ]
