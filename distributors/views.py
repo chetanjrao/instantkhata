@@ -244,14 +244,25 @@ class AnalyticsView(APIView):
         month_start = today.replace(day=1, second=0, minute=0, hour=0, microsecond=0)
         prev_month_end = (today.replace(day=1, second=59, minute=59, hour=23) - timedelta(days=1))
         prev_month_start = prev_month_end.replace(day=1, second=0, minute=0, hour=0)
-        current_sales = Invoice.objects.filter(distributor__user=request.user, created_at__gte=month_start, created_at__lte=today).aggregate(sales=Sum('total_amount'))
-        previous_sales = Invoice.objects.filter(distributor__user=request.user, created_at__gte=prev_month_start, created_at__lte=prev_month_end).aggregate(sales=Sum('total_amount'))
+        c_query = Invoice.objects.filter(distributor__user=request.user, created_at__gte=month_start, created_at__lte=today)
+        previous_sales = Invoice.objects.filter(distributor__user=request.user, created_at__gte=prev_month_start, created_at__lte=prev_month_end).aggregate(sales=Sum('total_amount'), sold=Sum('sales__quantity'))
+        current_sales = Invoice.objects.filter(distributor__user=request.user, created_at__gte=month_start, created_at__lte=today).aggregate(sales=Sum('total_amount'), sold=Sum('sales__quantity'))
         if previous_sales["sales"] is None:
             previous_sales["sales"] = 0
-        return Response({
-            "status": (current_sales["sales"] - previous_sales["sales"]) * 100 / previous_sales["sales"] if previous_sales["sales"] else current_sales["sales"],
-            "total": current_sales["sales"]
-        })
+        if previous_sales["sold"] is None:
+            previous_sales["sold"] = 0
+        return Response(
+            {
+                "sales": {
+                    "status": (current_sales["sales"] - previous_sales["sales"]) * 100 / previous_sales["sales"] if previous_sales["sales"] else current_sales["sales"],
+                    "total": current_sales["sales"]
+                },
+                "items": {
+                    "status": (current_sales["sold"] - previous_sales["sold"]) * 100 / previous_sales["sold"] if previous_sales["sold"] else current_sales["sold"],
+                    "total": current_sales["sold"]
+                }
+            }
+        )
 
     def get_queryset(self):
         return super().get_queryset()
