@@ -35,11 +35,8 @@ class InventorySerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         product = Product.objects.create(**validated_data)
-        product.save()
         quantity = Qty.objects.create(product=product, quantity=validated_data["quantity"])
-        quantity.save()
         quantity_log = Quantity.objects.create(product=product, type='A', quantity=validated_data["quantity"], remarks="Added items to the inventory", updated_by=validated_data["distributor"].user)
-        quantity_log.save()
         return super().create(validated_data)
 
 class BaseInventorySerializer(serializers.ModelSerializer):
@@ -287,3 +284,12 @@ class TransactionListSerializer(serializers.ModelSerializer):
     class Meta:
         model = BalanceSheet
         fields = ('retailer', 'id', 'payment_name', 'payment_image', 'amount', 'uid', 'invoice', 'closing_balance', 'is_credit', 'created_at')
+
+
+class BalanceSheetListSerializer(serializers.ModelSerializer):
+    image = serializers.ReadOnlyField(source='payment_mode.mode.provider.url')
+
+    class Meta:
+        model = BalanceSheet
+        fields = ('id', 'amount', 'is_credit', 'image', 'created_at', )
+

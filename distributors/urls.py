@@ -9,7 +9,8 @@ RetailersListView, RetailerAddView, RetailerDeleteView,
 TransactionsView, SingleTransactionView, RetailerView,
 NotifyInvoice, PaymentModeListView, PaymentMethodListView,
 NotifyCheckView, PaymentMethodCreationView, DeletePaymentView, 
-PackagesListView, BuySubscriptionView
+PackagesListView, BuySubscriptionView, SalesmanInvoiceListView, 
+SalesmanTransactionView, SalesmanAnalyticsView
 )
 
 urlpatterns = [
@@ -22,6 +23,7 @@ urlpatterns = [
     re_path(r'^search/salesman/$', SalesmanListSerializer.as_view(), name="salesman_list"),
     path('inventory/transfer/', InventoryTransferView.as_view(), name="inventory_transfer"),
     path('salesman/add/', SalesmanAddView.as_view(), name="add_salesman"),
+    path('salesman/analytics/', SalesmanAnalyticsView.as_view(), name="analytics_salesman"),
     path('salesman/remove/', SalesmanRemoveView.as_view(), name="remove_salesman"),
     path('invoices/', GetInvoicesView.as_view(), name='distributors_invoices'),
     path('invoices/notify/', NotifyInvoice.as_view(), name='distributors_invoices_notify_check'),
@@ -29,6 +31,8 @@ urlpatterns = [
     path('invoices/info/<str:invoice>/', InvoiceInfoView.as_view(), name="distributors_invoice_info"),
     path('analytics/', AnalyticsView.as_view(), name='analytics_view'),
     path('salesman/', SalesmanListView.as_view(), name='distributors_salesman'),
+    path('salesman/invoices/', SalesmanInvoiceListView.as_view(), name='distributors_salesman_invoices'),
+    path('salesman/transactions/', SalesmanTransactionView.as_view(), name='distributors_salesman_transactions'),
     path('retailers/', RetailersListView.as_view(), name='distributors_retailers'),
     path('retailers/<int:retailer>/', RetailerView.as_view(), name='distributors_retailers_info'),
     path('retailers/add/', RetailerAddView.as_view(), name="add_retailer"),

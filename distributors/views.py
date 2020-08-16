@@ -8,7 +8,7 @@ from .serializers import (DistributorSerializer, InventorySerializer,
     SalesmanDeleteSerializer, RetailerAddSerializer, 
     RetailerDeleteSerializer, PaymentModeSerializer, PaymentMethodSerializer,
     PaymentMethodListSerializer, PackageListSerializer, SubscriptionSerializer,
-    TransactionListSerializer
+    TransactionListSerializer, BalanceSheetListSerializer
     )
 from rest_framework.response import Response
 from instantkhata import permissions as local_permissions
@@ -510,3 +510,47 @@ class BuySubscriptionView(APIView):
     def get_queryset(self):
         modes = Subscription.objects.all()
         return modes
+
+
+class SalesmanInvoiceListView(APIView):
+
+    def post(self, request):
+        invoices = Invoice.objects.filter(distributor__user=request.user, salesman__user=request.data["salesman"]).values('total_amount', 'uid', 'retailer__name', 'created_at').order_by('-created_at')
+        return Response(invoices)
+
+    def get_queryset(self):
+        return Invoice.objects.all()
+
+
+class SalesmanTransactionView(APIView):
+
+    def post(self, request, *args, **kwargs):
+        today = localtime()
+        month_start = today.replace(day=1, second=0, minute=0, hour=0, microsecond=0)
+        transactions = BalanceSheet.objects.filter(created_by=request.data["salesman"], distributor__user=request.user.pk, created_at__gte=month_start, created_at__lte=today).order_by('-created_at')
+        serializer = BalanceSheetListSerializer(transactions, many=True)
+        return Response(serializer.data)
+
+    def get_queryset(self):
+        return BalanceSheet.objects.all()
+
+class SalesmanAnalyticsView(APIView):
+
+    def post(self, request, *args, **kwargs):
+        today = localtime()
+        month_start = today.replace(day=1, second=0, minute=0, hour=0, microsecond=0)
+        prev_month_end = (today.replace(day=1, second=59, minute=59, hour=23) - timedelta(days=1))
+        prev_month_start = prev_month_end.replace(day=1, second=0, minute=0, hour=0)
+        current_sales = Invoice.objects.filter(salesman=request.data["salesman"], distributor__user=request.user, created_at__gte=month_start, created_at__lte=today).aggregate(sales=Sum('total_amount'))
+        previous_sales = Invoice.objects.filter(salesman=request.data["salesman"], distributor__user=request.user, created_at__gte=prev_month_start, created_at__lte=prev_month_end).aggregate(sales=Sum('total_amount'))
+        if previous_sales["sales"] is None:
+            previous_sales["sales"] = 0
+        if current_sales["sales"] is None:
+            current_sales["sales"] = 0
+        return Response({
+            "status": (current_sales["sales"] - previous_sales["sales"]) * 100 / previous_sales["sales"] if previous_sales["sales"] else current_sales["sales"],
+            "total": current_sales["sales"]
+        })
+
+    def get_queryset(self):
+        return Invoice.objects.all()

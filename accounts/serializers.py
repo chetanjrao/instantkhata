@@ -30,10 +30,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 class OTPSerializer(serializers.Serializer):
     user = serializers.CharField(max_length=10)
+    role = serializers.IntegerField()
 
     def validate_user(self, user):
         try:
-            user = User.objects.get(mobile=user)
+            user = User.objects.get(mobile=user, role=self.initial_data["role"])
         except User.DoesNotExist:
             raise ValidationError("Requested mobile is not associated with any user")
         return user

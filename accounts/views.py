@@ -36,7 +36,10 @@ class AuthManager(APIView):
                 "message": "OTP sent successfully",
                 "status": 200
             }, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors)
+        return Response({
+                "message": "Bad Request",
+                "status": 400
+            }, 400)
 
 class OTPManager(APIView):
 
