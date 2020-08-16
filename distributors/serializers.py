@@ -276,3 +276,14 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         except Due.DoesNotExist:
             new_due_date = Due.objects.create(distributor=distributor, subscription=subscription, due_date=due_cal)
         return subscription
+
+
+class TransactionListSerializer(serializers.ModelSerializer):
+    retailer = serializers.ReadOnlyField(source='retailer.name')
+    payment_name = serializers.ReadOnlyField(source='payment_mode.mode.name')
+    payment_image = serializers.ReadOnlyField(source='payment_mode.mode.provider.url')
+    uid = serializers.ReadOnlyField(source='invoice.uid')
+    
+    class Meta:
+        model = BalanceSheet
+        fields = ('retailer', 'id', 'payment_name', 'payment_image', 'amount', 'uid', 'invoice', 'closing_balance', 'is_credit', 'created_at')

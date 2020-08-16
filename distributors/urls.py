@@ -8,7 +8,8 @@ InvoiceInfoView, AnalyticsView, SalesmanListView,
 RetailersListView, RetailerAddView, RetailerDeleteView,
 TransactionsView, SingleTransactionView, RetailerView,
 NotifyInvoice, PaymentModeListView, PaymentMethodListView,
-PaymentMethodCreationView, DeletePaymentView, PackagesListView, BuySubscriptionView
+NotifyCheckView, PaymentMethodCreationView, DeletePaymentView, 
+PackagesListView, BuySubscriptionView
 )
 
 urlpatterns = [
@@ -23,7 +24,8 @@ urlpatterns = [
     path('salesman/add/', SalesmanAddView.as_view(), name="add_salesman"),
     path('salesman/remove/', SalesmanRemoveView.as_view(), name="remove_salesman"),
     path('invoices/', GetInvoicesView.as_view(), name='distributors_invoices'),
-    path('invoices/notify/', NotifyInvoice.as_view(), name='distributors_invoices_notify'),
+    path('invoices/notify/', NotifyInvoice.as_view(), name='distributors_invoices_notify_check'),
+    path('invoices/notify/check/', NotifyCheckView.as_view(), name='distributors_invoices_notify'),
     path('invoices/info/<str:invoice>/', InvoiceInfoView.as_view(), name="distributors_invoice_info"),
     path('analytics/', AnalyticsView.as_view(), name='analytics_view'),
     path('salesman/', SalesmanListView.as_view(), name='distributors_salesman'),

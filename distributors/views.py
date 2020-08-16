@@ -7,7 +7,8 @@ from .serializers import (DistributorSerializer, InventorySerializer,
     SalesmanTransferSerializer, SalesmanAddSerializer, 
     SalesmanDeleteSerializer, RetailerAddSerializer, 
     RetailerDeleteSerializer, PaymentModeSerializer, PaymentMethodSerializer,
-    PaymentMethodListSerializer, PackageListSerializer, SubscriptionSerializer
+    PaymentMethodListSerializer, PackageListSerializer, SubscriptionSerializer,
+    TransactionListSerializer
     )
 from rest_framework.response import Response
 from instantkhata import permissions as local_permissions
@@ -188,7 +189,7 @@ class GetInvoicesView(APIView):
     permission_classes = [permissions.IsAuthenticated, local_permissions.DistributorPermission]
 
     def get(self, request, **args):
-        invoices = Invoice.objects.filter(distributor__user=request.user).values('retailer__name', 'salesman__user__first_name', 'uid', 'total_amount', 'created_at')
+        invoices = Invoice.objects.filter(distributor__user=request.user).values('retailer__name', 'salesman__user__first_name', 'uid', 'total_amount', 'created_at').order_by('-created_at')
         return Response(invoices)
         
 
@@ -273,7 +274,7 @@ class SalesmanListView(APIView):
     permission_classes = [permissions.IsAuthenticated, local_permissions.DistributorPermission]
 
     def get(self, request):
-        return Response(Salesman.objects.filter(distributor__user=request.user).values('user__first_name', 'user__mobile'))
+        return Response(Salesman.objects.filter(distributor__user=request.user).values('id', name=F('user__first_name'), mobile=F('user__mobile')))
 
     def get_queryset(self):
         return super().get_queryset()
@@ -284,7 +285,7 @@ class RetailersListView(APIView):
     permission_classes = [permissions.IsAuthenticated, local_permissions.DistributorPermission]
 
     def get(self, request):
-        return Response(Retailer.objects.filter(distributors__user=request.user).values('name', 'address', mobile=F('user__mobile')))
+        return Response(Retailer.objects.filter(distributors__user=request.user).values('name', 'address', 'id', mobile=F('user__mobile')))
 
     def get_queryset(self):
         return super().get_queryset()
@@ -295,8 +296,9 @@ class TransactionsView(APIView):
     permission_classes = [permissions.IsAuthenticated, local_permissions.DistributorPermission]
 
     def get(self, request, *args, **kwargs):
-        transactions = BalanceSheet.objects.filter(distributor__user=request.user).order_by('-created_at').values()
-        return Response(transactions)
+        transactions = BalanceSheet.objects.filter(distributor__user=request.user).order_by('-created_at')
+        serializer = TransactionListSerializer(transactions, many=True)
+        return Response(serializer.data)
 
     def get_queryset(self):
         return super().get_queryset()
@@ -321,10 +323,10 @@ class RetailerView(APIView):
     permission_classes = [permissions.IsAuthenticated, local_permissions.DistributorPermission]
 
     def get(self, request, retailer):
-        curr_retailer = Retailer.objects.filter(pk=retailer, distributors__user=request.user).values()
+        curr_retailer = Retailer.objects.filter(pk=retailer, distributors__user=request.user).values('id', 'name', 'logo', 'gst_number', 'district__name', 'address', 'gst_entity', 'gst_state__name', 'food_license', 'drug_license', 'latitude', 'longitude', 'user__first_name', 'user__last_name')
         try:
             balance = Balance.objects.get(retailer__pk=retailer)
-            invoices = Invoice.objects.filter(retailer__pk=retailer, distributor__user=request.user).order_by('-created_at').values('total_amount', 'uid', 'created_at', salesman_name=F('salesman__user__first_name'))
+            invoices = Invoice.objects.filter(retailer__pk=retailer, distributor__user=request.user).order_by('-created_at').values('total_amount', 'id', 'uid', 'created_at', salesman_name=F('salesman__user__first_name'))
             transactions = BalanceSheet.objects.filter(retailer__pk=retailer, distributor__user=request.user).order_by('-created_at').values('amount', 'is_credit', 'payment_mode', 'id', 'created_at', payment_image=F('payment_mode__mode__provider'), salesman=F('created_by__user__first_name'))
             return Response({
                 "retailer": curr_retailer[0],
@@ -347,21 +349,43 @@ class NotifyInvoice(APIView):
     def post(self, request, **args):
         current_time = now()
         today_date = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
-        notification = Notifications.objects.filter(created_at__gte=today_date, type='I', retailer__pk=request.data["retailer"], distributor__user=request.user)
+        curr_invoice = Invoice.objects.get(uid=request.data["invoice"])
+        notification = Notifications.objects.filter(created_at__gte=today_date, type='I', retailer=curr_invoice.retailer, distributor=curr_invoice.distributor)
         if len(notification) == 0:
             try:
-                curr_distributor = Distributor.objects.get(user=request.user)
-                retailer = Retailer.objects.get(pk=request.data["retailer"])
-                curr_invoice = Invoice.objects.get(uid=request.data["invoice"])
-                message = 'Hi, {}. \nYou have a pending payment of Rs {:.2f}/- on Invoice No. {} created at {}. Last date to pay is {}.\nRegards,\n{}'.format(retailer.name, curr_invoice.balance, curr_invoice.pk, curr_invoice.created_at.strftime('%d %B %Y') ,curr_invoice.deadline.strftime('%d %B %Y'), curr_distributor.name)
-                new_notification = Notifications(retailer=retailer, entity=curr_invoice.pk, distributor=curr_distributor, message=message, type='I')
-                send_message(message, retailer.user.mobile)
-                new_notification.save()
-                return Response(createMessage("Message has been sent", 200), status=200)
+                if curr_invoice.balance > 0:
+                    message = 'Hi, {}. \nYou have a pending payment of Rs {:.2f}/- on Invoice No.{} created at {}. Last date to pay is {}.\nRegards,\n{}'.format(curr_invoice.retailer.name, curr_invoice.balance, curr_invoice.pk, curr_invoice.created_at.strftime('%d %B %Y') ,curr_invoice.deadline.strftime('%d %B %Y'), curr_invoice.distributor.name)
+                    new_notification = Notifications(retailer=curr_invoice.retailer, entity=curr_invoice.pk, distributor=curr_invoice.distributor, message=message, type='I')
+                    send_message(message, curr_invoice.retailer.user.mobile)
+                    new_notification.save()
+                    return Response(createMessage("Message has been sent", 200), status=200)
+                else:
+                    return Response(createMessage("Balance is already cleared", 200), status=200)
             except (Retailer.DoesNotExist, Invoice.DoesNotExist):
                 return Response(createMessage("Bad request", 400), status=400)
         else:
             return Response(createMessage("Message has already been sent", 200), status=200)
+
+    def get_queryset(self):
+        return super().get_queryset()
+
+
+class NotifyCheckView(APIView):
+
+    permission_classes = [permissions.IsAuthenticated, local_permissions.DistributorPermission]
+
+    def post(self, request, **args):
+        current_time = now()
+        today_date = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        curr_invoice = Invoice.objects.get(uid=request.data["invoice"])
+        notification = Notifications.objects.filter(created_at__gte=today_date, type='I', retailer=curr_invoice.retailer, distributor__user=request.user)
+        if len(notification) == 0:
+            if curr_invoice.balance > 0:
+                return Response(createMessage("ok", 200), status=200)
+            else:
+                return Response(createMessage("done", 200), status=200)
+        else:
+            return Response(createMessage("done", 200), status=200)
 
     def get_queryset(self):
         return super().get_queryset()
